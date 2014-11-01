@@ -208,3 +208,42 @@ protected:
 public:
 	OBSBasicSettings(QWidget *parent);
 };
+
+class OBSHotkeyEdit : public QLineEdit {
+	Q_OBJECT;
+
+public:
+	OBSHotkeyEdit(obs_hotkey_id id, const char *name,
+			obs_key_combination_t original,
+			QWidget *parent=nullptr)
+		: QLineEdit(parent),
+		  id(id), name(name), original(original),
+		  changed(false)
+	{
+		setReadOnly(true);
+		setAttribute(Qt::WA_MacShowFocusRect, true);
+		InitSignalHandler();
+		ResetKey();
+	}
+
+	obs_hotkey_id         id;
+	const char            *name;
+	obs_key_combination_t original;
+	obs_key_combination_t key;
+	bool                  changed;
+protected:
+	OBSSignal             layoutChanged;
+
+	void InitSignalHandler();
+	void keyPressEvent(QKeyEvent *event);
+	void RenderKey();
+
+public slots:
+	void ReloadKeyLayout();
+	void ResetKey();
+	void ClearKey();
+
+signals:
+	void KeyChanged();
+};
+

@@ -17,6 +17,7 @@
 ******************************************************************************/
 
 #include <obs.hpp>
+#include <util/dstr.hpp>
 #include <util/util.hpp>
 #include <util/lexer.h>
 #include <sstream>
@@ -1933,3 +1934,97 @@ void OBSBasicSettings::AdvancedChanged()
 		EnableApplyButton(true);
 	}
 }
+
+void OBSHotkeyEdit::keyPressEvent(QKeyEvent *event)
+{
+	event->accept();
+	if (event->isAutoRepeat())
+		return;
+
+	DStr str;
+	switch (event->key()) {
+	case Qt::Key_Shift:
+	case Qt::Key_Control:
+	case Qt::Key_Alt:
+	case Qt::Key_Meta:
+#ifdef __APPLE__
+	case Qt::Key_CapsLock:
+#endif
+		key.key = OBS_KEY_NONE;
+		break;
+	default:
+		key.key = obs_key_from_virtual_key(event->nativeVirtualKey());
+		obs_key_to_str(key.key, str);
+	}
+
+	key.modifiers = TranslateQtKeyboardEventModifiers(event->modifiers());
+
+	if (key.key == original.key && key.modifiers == original.modifiers)
+		return;
+
+	changed = true;
+	emit KeyChanged();
+
+	RenderKey();
+}
+
+void OBSHotkeyEdit::RenderKey()
+{
+	DStr str;
+	obs_key_to_str(key.key, str);
+
+	int mods = 0;
+	auto setMod = [&](uint32_t flag, int code)
+	{
+		if ((key.modifiers & flag) == flag)
+			mods += code;
+	};
+#ifdef __APPLE__
+	bool macFlip = true;
+#else
+	bool macFlip = false;
+#endif
+	setMod(INTERACT_SHIFT_KEY,   Qt::SHIFT);
+	setMod(INTERACT_CONTROL_KEY, macFlip ? Qt::META : Qt::CTRL);
+	setMod(INTERACT_ALT_KEY,     Qt::ALT);
+	setMod(INTERACT_COMMAND_KEY, macFlip ? Qt::CTRL : Qt::META);
+
+	setText(QKeySequence(mods).toString(QKeySequence::NativeText) + str);
+}
+
+void OBSHotkeyEdit::ResetKey()
+{
+	key = original;
+
+	changed = false;
+	emit KeyChanged();
+
+	RenderKey();
+}
+
+void OBSHotkeyEdit::ClearKey()
+{
+	key = {0, OBS_KEY_NONE};
+
+	changed = true;
+	emit KeyChanged();
+
+	RenderKey();
+}
+
+void OBSHotkeyEdit::InitSignalHandler()
+{
+	layoutChanged = {obs_get_signal_handler(),
+			"hotkey_layout_change",
+			[](void *this_, calldata_t*)
+	{
+		auto edit = static_cast<OBSHotkeyEdit*>(this_);
+		QMetaObject::invokeMethod(edit, "ReloadKeyLayout");
+	}, this};
+}
+
+void OBSHotkeyEdit::ReloadKeyLayout()
+{
+	RenderKey();
+}
+
