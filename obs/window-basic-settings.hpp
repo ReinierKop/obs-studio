@@ -51,6 +51,9 @@ using OBSFFCodecDesc = std::unique_ptr<const ff_codec_desc,
 using OBSFFFormatDesc = std::unique_ptr<const ff_format_desc,
 		OBSFFDeleter>;
 
+class OBSHotkeyEdit;
+class OBSHotkeyWidget;
+
 class OBSBasicSettings : public QDialog {
 	Q_OBJECT
 
@@ -58,12 +61,14 @@ private:
 	OBSBasic *main;
 
 	std::unique_ptr<Ui::OBSBasicSettings> ui;
+
 	bool generalChanged = false;
 	bool stream1Changed = false;
 	bool outputsChanged = false;
 	bool audioChanged = false;
 	bool videoChanged = false;
 	bool advancedChanged = false;
+	bool hotkeysChanged = false;
 	int  pageIndex = 0;
 	bool loading = true;
 	std::string savedTheme;
@@ -73,6 +78,8 @@ private:
 	OBSPropertiesView *streamProperties = nullptr;
 	OBSPropertiesView *streamEncoderProps = nullptr;
 	OBSPropertiesView *recordEncoderProps = nullptr;
+
+	std::vector<std::pair<bool, QPointer<OBSHotkeyWidget>>> hotkeys;
 
 	void SaveCombo(QComboBox *widget, const char *section,
 			const char *value);
@@ -91,7 +98,8 @@ private:
 	inline bool Changed() const
 	{
 		return generalChanged || outputsChanged || stream1Changed ||
-			audioChanged || videoChanged || advancedChanged;
+			audioChanged || videoChanged || advancedChanged ||
+			hotkeysChanged;
 	}
 
 	inline void EnableApplyButton(bool en)
@@ -107,6 +115,7 @@ private:
 		audioChanged   = false;
 		videoChanged   = false;
 		advancedChanged= false;
+		hotkeysChanged = false;
 		EnableApplyButton(false);
 	}
 
@@ -126,6 +135,7 @@ private:
 	void LoadAudioSettings();
 	void LoadVideoSettings();
 	void LoadAdvancedSettings();
+	void LoadHotkeySettings();
 	void LoadSettings(bool changedOnly);
 
 	OBSPropertiesView *CreateEncoderPropertyView(const char *encoder,
@@ -166,6 +176,7 @@ private:
 	void SaveAudioSettings();
 	void SaveVideoSettings();
 	void SaveAdvancedSettings();
+	void SaveHotkeySettings();
 	void SaveSettings();
 
 private slots:
@@ -201,6 +212,7 @@ private slots:
 	void VideoChangedRestart();
 	void AdvancedChanged();
 	void AdvancedChangedRestart();
+	void HotkeysChanged();
 
 protected:
 	virtual void closeEvent(QCloseEvent *event);
@@ -209,15 +221,50 @@ public:
 	OBSBasicSettings(QWidget *parent);
 };
 
+class OBSHotkeyWidget : public QWidget {
+	Q_OBJECT;
+
+public:
+	OBSHotkeyWidget(obs_hotkey_id id, std::string name,
+			const std::vector<obs_key_combination_t> &combos={},
+			QWidget *parent=nullptr)
+		: QWidget(parent),
+		  id(id),
+		  name(std::move(name))
+	{
+		SetKeyCombinations(combos);
+	}
+
+	void SetKeyCombinations(const std::vector<obs_key_combination_t>&);
+
+	obs_hotkey_id id;
+	std::string name;
+	std::vector<QPointer<OBSHotkeyEdit>> edits;
+	std::vector<QPointer<QPushButton>> removeButtons;
+	bool changed = false;
+
+	bool Changed() const;
+
+	QVBoxLayout *layout() const
+	{
+		return dynamic_cast<QVBoxLayout*>(QWidget::layout());
+	}
+
+private:
+	void AddEdit(obs_key_combination combo, int idx=-1);
+
+signals:
+	void KeyChanged();
+};
+
 class OBSHotkeyEdit : public QLineEdit {
 	Q_OBJECT;
 
 public:
-	OBSHotkeyEdit(obs_hotkey_id id, const char *name,
-			obs_key_combination_t original,
+	OBSHotkeyEdit(obs_key_combination_t original,
 			QWidget *parent=nullptr)
 		: QLineEdit(parent),
-		  id(id), name(name), original(original),
+		  original(original),
 		  changed(false)
 	{
 		setReadOnly(true);
@@ -226,8 +273,6 @@ public:
 		ResetKey();
 	}
 
-	obs_hotkey_id         id;
-	const char            *name;
 	obs_key_combination_t original;
 	obs_key_combination_t key;
 	bool                  changed;
@@ -244,6 +289,6 @@ public slots:
 	void ClearKey();
 
 signals:
-	void KeyChanged();
+	void KeyChanged(obs_key_combination_t);
 };
 
