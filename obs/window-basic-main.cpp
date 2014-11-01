@@ -847,6 +847,17 @@ void OBSBasic::AddScene(OBSSource source)
 	item->setData(Qt::UserRole, QVariant::fromValue(OBSScene(scene)));
 	ui->scenes->addItem(item);
 
+	obs_hotkey_register_source(source, "BasicSelectScene",
+			QT_TO_UTF8(QTStr("Basic.Hotkeys.SelectScene")),
+			OBS_HOTKEY_PRESS,
+			[](obs_hotkey_id, obs_hotkey_t*, bool pressed,
+				void *data)
+	{
+		if (pressed)
+			obs_set_output_source(0,
+				static_cast<obs_source_t*>(data));
+	}, static_cast<obs_source_t*>(source));
+
 	signal_handler_t *handler = obs_source_get_signal_handler(source);
 	signal_handler_connect(handler, "item_add",
 			OBSBasic::SceneItemAdded, this);
