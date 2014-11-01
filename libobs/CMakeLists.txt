@@ -69,8 +69,23 @@ elseif(APPLE)
 	mark_as_advanced(COCOA)
 	include_directories(${COCOA})
 
+	find_library(APPKIT AppKit)
+	mark_as_advanced(APPKIT)
+	include_directories(${APPKIT})
+
+	find_library(IOKIT IOKit)
+	mark_as_advanced(IOKIT)
+	include_directories(${IOKIT})
+
+	find_library(CARBON Carbon)
+	mark_as_advanced(CARBON)
+	include_directories(${CARBON})
+
 	set(libobs_PLATFORM_DEPS
-		${COCOA})
+		${COCOA}
+		${APPKIT}
+		${IOKIT}
+		${CARBON})
 elseif(UNIX)
 	set(libobs_PLATFORM_SOURCES
 		obs-nix.c
@@ -207,6 +222,7 @@ set(libobs_libobs_SOURCES
 	obs.c
 	obs-properties.c
 	obs-data.c
+	obs-hotkey.c
 	obs-module.c
 	obs-display.c
 	obs-view.c
@@ -224,6 +240,7 @@ set(libobs_libobs_HEADERS
 	obs-properties.h
 	obs-data.h
 	obs-interaction.h
+	obs-hotkey.h
 	obs-module.h
 	obs-scene.h
 	obs-source.h

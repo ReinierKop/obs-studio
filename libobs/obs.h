@@ -67,6 +67,7 @@ typedef struct obs_volmeter   obs_volmeter_t;
 #include "obs-output.h"
 #include "obs-service.h"
 #include "obs-audio-controls.h"
+#include "obs-hotkey.h"
 
 /**
  * @file
@@ -646,7 +647,8 @@ EXPORT const char *obs_source_get_display_name(enum obs_source_type type,
  * or modifying video/audio.  Use obs_source_release to release it.
  */
 EXPORT obs_source_t *obs_source_create(enum obs_source_type type,
-		const char *id, const char *name, obs_data_t *settings);
+		const char *id, const char *name, obs_data_t *settings,
+		obs_data_t *hotkey_data);
 
 /**
  * Adds/releases a reference to a source.  When the last reference is

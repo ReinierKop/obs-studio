@@ -292,7 +292,7 @@ void OBSBasic::CreateDefaultScene()
 
 #ifdef __APPLE__
 	source = obs_source_create(OBS_SOURCE_TYPE_INPUT, "display_capture",
-			Str("Basic.DisplayCapture"), NULL);
+			Str("Basic.DisplayCapture"), NULL, nullptr);
 
 	if (source) {
 		obs_scene_add(scene, source);
@@ -1638,7 +1638,7 @@ void OBSBasic::ResetAudioDevice(const char *sourceId, const char *deviceName,
 		obs_data_t *settings = obs_data_create();
 		obs_data_set_string(settings, "device_id", deviceId);
 		source = obs_source_create(OBS_SOURCE_TYPE_INPUT,
-				sourceId, deviceDesc, settings);
+				sourceId, deviceDesc, settings, nullptr);
 		obs_data_release(settings);
 
 		obs_set_output_source(channel, source);
