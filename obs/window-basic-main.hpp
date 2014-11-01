@@ -50,6 +50,11 @@ class QNetworkReply;
 
 struct BasicOutputHandler;
 
+struct ExclusiveHotkeyPair {
+	std::function<void(obs_hotkey_id, obs_hotkey_t*, bool)> func[2];
+	bool                                                    pressed[2];
+};
+
 class OBSBasic : public OBSMainWindow {
 	Q_OBJECT
 
@@ -112,6 +117,8 @@ private:
 	void          Save(const char *file);
 	void          Load(const char *file);
 
+	void          InitHotkeys();
+
 	bool          InitService();
 
 	bool          InitBasicConfigDefaults();
@@ -148,6 +155,8 @@ private:
 
 	void Nudge(int dist, MoveDir dir);
 	void OpenProjector(obs_source_t *source, int monitor);
+
+	ExclusiveHotkeyPair streamingHotkeys, recordingHotkeys;
 
 public slots:
 	void StartStreaming();

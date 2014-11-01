@@ -667,6 +667,7 @@ void OBSBasic::OBSInit()
 
 	Load(savePath);
 	ResetAudioDevices();
+	InitHotkeys();
 
 	TimedCheckForUpdates();
 	loaded = true;
@@ -680,6 +681,104 @@ void OBSBasic::OBSInit()
 	if (!previewEnabled)
 		QMetaObject::invokeMethod(this, "TogglePreview",
 				Qt::QueuedConnection);
+}
+
+static inline void LoadHotkeyConfig(ConfigFile &config, const char *name,
+		obs_hotkey_id id)
+{
+	const char *info = config_get_string(config, "Hotkeys", name);
+	if (!info)
+		return;
+
+	blog(LOG_INFO, "Loading hotkey %lu info: %s", id, info);
+
+	obs_data_t *data = obs_data_create_from_json(info);
+	if (!data)
+		return;
+
+	obs_data_array_t *array = obs_data_get_array(data, "bindings");
+	obs_hotkey_load(id, array);
+	obs_data_array_release(array);
+	obs_data_release(data);
+}
+
+static inline void InitStartStopPair(OBSBasic &basic, ConfigFile &config,
+		ExclusiveHotkeyPair &pair, BasicOutputHandler &handler,
+		bool (BasicOutputHandler::*activeFunc)() const,
+		const char *name1, const char *metaMethod1, const char *desc1,
+		const char *name2, const char *metaMethod2, const char *desc2)
+{
+	auto Func1 = [&basic, &pair, &handler, activeFunc, metaMethod1]
+		(obs_hotkey_id, obs_hotkey_t*, bool pressed)
+	{
+		if (pair.pressed[1])
+			return;
+
+		if (pair.pressed[0] && !pressed)
+			pair.pressed[0] = false;
+		else if (!(handler.*activeFunc)()) {
+			if ((pair.pressed[0] = pressed))
+				QMetaObject::invokeMethod(&basic, metaMethod1);
+		}
+	};
+
+	auto Func2 = [&basic, &pair, &handler, activeFunc, metaMethod2]
+		(obs_hotkey_id, obs_hotkey_t*, bool pressed)
+	{
+		if (pair.pressed[0])
+			return;
+
+		if (pair.pressed[1] && !pressed)
+			pair.pressed[1] = false;
+		else if ((handler.*activeFunc)()) {
+			if ((pair.pressed[1] = pressed))
+				QMetaObject::invokeMethod(&basic, metaMethod2);
+		}
+	};
+
+	pair.func[0] = Func1;
+	pair.func[1] = Func2;
+
+	using func1_t = decltype(Func1);
+	using func2_t = decltype(Func2);
+
+	obs_hotkey_id id1, id2;
+
+	id1 = obs_hotkey_register_frontend(name1, desc1, OBS_HOTKEY_PRESS,
+			[](obs_hotkey_id id, obs_hotkey_t *key, bool pressed,
+				void *data)
+	{
+		(*static_cast<func1_t*>(data))(id, key, pressed);
+	}, pair.func[0].target<func1_t>());
+
+	id2 = obs_hotkey_register_frontend(name2, desc2, OBS_HOTKEY_PRESS,
+			[](obs_hotkey_id id, obs_hotkey_t *key, bool pressed,
+				void *data)
+	{
+		(*static_cast<func2_t*>(data))(id, key, pressed);
+	}, pair.func[1].target<func2_t>());
+
+	LoadHotkeyConfig(config, name1, id1);
+	LoadHotkeyConfig(config, name2, id2);
+}
+
+void OBSBasic::InitHotkeys()
+{
+	InitStartStopPair(*this, basicConfig, streamingHotkeys,
+			*outputHandler.get(),
+			&BasicOutputHandler::StreamingActive,
+			"StartStreaming", "StartStreaming",
+			QT_TO_UTF8(QTStr("Basic.Hotkeys.StartStreaming")),
+			"StopStreaming", "StopStreaming",
+			QT_TO_UTF8(QTStr("Basic.Hotkeys.StopStreaming")));
+
+	InitStartStopPair(*this, basicConfig, recordingHotkeys,
+			*outputHandler.get(),
+			&BasicOutputHandler::RecordingActive,
+			"StartRecording", "StartRecording",
+			QT_TO_UTF8(QTStr("Basic.Hotkeys.StartRecording")),
+			"StopRecording", "StopRecording",
+			QT_TO_UTF8(QTStr("Basic.Hotkeys.StopRecording")));
 }
 
 OBSBasic::~OBSBasic()
