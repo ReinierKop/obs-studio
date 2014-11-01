@@ -132,6 +132,8 @@ OBSBasic::OBSBasic(QWidget *parent)
 	stringstream name;
 	name << "OBS " << App()->GetVersionString();
 
+	installEventFilter(CreateShortcutFilter());
+
 	blog(LOG_INFO, "%s", name.str().c_str());
 	setWindowTitle(QT_UTF8(name.str().c_str()));
 

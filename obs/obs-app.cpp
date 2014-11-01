@@ -50,6 +50,54 @@ static log_handler_t def_log_handler;
 static string currentLogFile;
 static string lastLogFile;
 
+QObject *CreateShortcutFilter()
+{
+	return new OBSEventFilter([](QObject *, QEvent *event)
+	{
+		auto key_event = [](QKeyEvent *event)
+		{
+			obs_key_combination_t hotkey = {0, OBS_KEY_NONE};
+			switch (event->key()) {
+			case Qt::Key_Shift:
+			case Qt::Key_Control:
+			case Qt::Key_Alt:
+			case Qt::Key_Meta:
+				break;
+
+#ifdef __APPLE__
+			case Qt::Key_CapsLock:
+				// kVK_CapsLock == 57
+				hotkey.key = obs_key_from_virtual_key(57);
+				break;
+#endif
+
+			default:
+				hotkey.key = obs_key_from_virtual_key(
+					event->nativeVirtualKey());
+			}
+
+			hotkey.modifiers = TranslateQtKeyboardEventModifiers(
+							event->modifiers());
+
+			obs_hotkey_inject_event(hotkey,
+				event->type() == QEvent::KeyPress);
+		};
+
+		switch (event->type()) {
+		/*case QEvent::MouseButtonPress:
+		case QEvent::MouseButtonRelease:
+		case QEvent::MouseButtonDblClick:
+		case QEvent::Wheel:*/
+		case QEvent::KeyPress:
+		case QEvent::KeyRelease:
+			//qDebug() << event;
+			key_event(static_cast<QKeyEvent*>(event));
+		default:
+			return false;
+		}
+	});
+}
+
 string CurrentTimeString()
 {
 	time_t     now = time(0);
@@ -328,6 +376,14 @@ bool OBSApp::OBSInit()
 
 		mainWindow->OBSInit();
 
+		connect(this, &QGuiApplication::applicationStateChanged,
+				[](Qt::ApplicationState state)
+				{
+					obs_hotkey_enable_background_primary(
+						state != Qt::ApplicationActive);
+				});
+		obs_hotkey_enable_background_primary(
+				applicationState() != Qt::ApplicationActive);
 		return true;
 	} else {
 		return false;
