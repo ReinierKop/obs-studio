@@ -22,6 +22,7 @@ extern "C" {
 #endif
 
 typedef size_t obs_hotkey_id;
+#define OBS_INVALID_HOTKEY_ID (~(obs_hotkey_id)0)
 
 enum obs_key {
 	OBS_KEY_NONE,

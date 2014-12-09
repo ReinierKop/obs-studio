@@ -17,9 +17,13 @@
 
 #include "obs-internal.h"
 
-static inline void lock(void)
+static inline bool lock(void)
 {
+	if (!obs)
+		return false;
+
 	pthread_mutex_lock(&obs->hotkeys.mutex);
+	return true;
 }
 
 static inline void unlock(void)
@@ -85,7 +89,11 @@ static inline obs_hotkey_id obs_hotkey_register_internal(
 {
 	obs_hotkey_id result;
 
-	lock();
+	if (!lock())
+		return OBS_INVALID_HOTKEY_ID;
+
+	assert((obs->hotkeys.next_id + 1) < OBS_INVALID_HOTKEY_ID);
+
 	obs_hotkey_t *base_addr = obs->hotkeys.hotkeys.array;
 	result                  = obs->hotkeys.next_id++;
 	obs_hotkey_t *hotkey    = da_push_back_new(obs->hotkeys.hotkeys);
@@ -282,7 +290,9 @@ static inline void load_bindings(obs_hotkey_t *hotkey, obs_data_array_t *data)
 {
 	size_t idx;
 
-	lock();
+	if (!lock())
+		return;
+
 	if (find_id(id, &idx))
 		obs->hotkeys.hotkeys.array[idx].key = hotkey;
 	unlock();
@@ -293,7 +303,9 @@ static inline void load_bindings(obs_hotkey_t *hotkey, obs_data_array_t *data)
 	obs_key_combination_t key = {0, OBS_KEY_NONE};
 	size_t idx;
 
-	lock();
+	if (!lock())
+		return;
+
 	if (find_id(id, &idx))
 		key = obs->hotkeys.hotkeys.array[idx].key;
 	unlock();
@@ -308,7 +320,9 @@ void obs_hotkey_load_bindings(obs_hotkey_id id,
 {
 	size_t idx;
 
-	lock();
+	if (!lock())
+		return;
+
 	if (find_id(id, &idx)) {
 		remove_bindings(id);
 		for (size_t i = 0; i < num; i++)
@@ -322,7 +336,9 @@ void obs_hotkey_load(obs_hotkey_id id, obs_data_array_t *data)
 {
 	size_t idx;
 
-	lock();
+	if (!lock())
+		return;
+
 	if (find_id(id, &idx)) {
 		remove_bindings(id);
 		load_bindings(&obs->hotkeys.hotkeys.array[idx], data);
@@ -348,8 +364,9 @@ void obs_hotkeys_load_source(obs_source_t *source, obs_data_t *bindings)
 {
 	if (!source || !bindings)
 		return;
+	if (!lock())
+		return;
 
-	lock();
 	enum_context_hotkeys(&source->context, enum_load_bindings, bindings);
 	unlock();
 }
@@ -407,7 +424,9 @@ obs_data_array_t *obs_hotkey_save(obs_hotkey_id id)
 	size_t idx;
 	obs_data_array_t *result = NULL;
 
-	lock();
+	if (!lock())
+		return result;
+
 	if (find_id(id, &idx))
 		result = save_hotkey(&obs->hotkeys.hotkeys.array[idx]);
 	unlock();
@@ -438,9 +457,11 @@ static inline obs_data_t *save_context_hotkeys(struct obs_context_data *context)
 
 obs_data_t *obs_hotkeys_save_source(obs_source_t *source)
 {
-	obs_data_t *result;
+	obs_data_t *result = NULL;
 
-	lock();
+	if (!lock())
+		return result;
+
 	result = save_context_hotkeys(&source->context);
 	unlock();
 
@@ -505,7 +526,8 @@ static inline bool unregister_hotkey(obs_hotkey_id id)
 
 void obs_hotkey_unregister(obs_hotkey_id id)
 {
-	lock();
+	if (!lock())
+		return;
 	if (unregister_hotkey(id))
 		fixup_pointers();
 	unlock();
@@ -513,7 +535,8 @@ void obs_hotkey_unregister(obs_hotkey_id id)
 
 void obs_hotkeys_context_release(struct obs_context_data *context)
 {
-	lock();
+	if (!lock())
+		return;
 	if (!context->hotkeys.num)
 		goto cleanup;
 
@@ -560,14 +583,18 @@ static inline bool enum_hotkey(size_t idx, obs_hotkey_t *hotkey,
 void obs_enum_hotkeys(obs_hotkey_enum_func func, void *data)
 {
 	struct obs_hotkey_internal_enum_forward forwarder = {func, data};
-	lock();
+	if (!lock())
+		return;
+
 	enum_hotkeys(enum_hotkey, &forwarder);
 	unlock();
 }
 
 void obs_enum_hotkey_bindings(obs_hotkey_binding_enum_func func, void *data)
 {
-	lock();
+	if (!lock())
+		return;
+
 	enum_bindings(func, data);
 	unlock();
 }
@@ -658,7 +685,9 @@ static inline bool inject_hotkey(size_t idx, obs_hotkey_binding_t *binding,
 
 void obs_hotkey_inject_event(obs_key_combination_t hotkey, bool pressed)
 {
-	lock();
+	if (!lock())
+		return;
+
 	struct obs_hotkey_internal_inject event = {
 		{hotkey.modifiers, hotkey.key},
 		pressed
@@ -669,7 +698,9 @@ void obs_hotkey_inject_event(obs_key_combination_t hotkey, bool pressed)
 
 void obs_hotkey_enable_background_primary(bool enable)
 {
-	lock();
+	if (!lock())
+		return;
+
 	blog(LOG_INFO, "disabled: %s", !enable ? "true" : "false");
 	obs->hotkeys.thread_disable_primary = !enable;
 	unlock();
@@ -706,7 +737,9 @@ void *obs_hotkey_thread(void *arg)
 {
 	UNUSED_PARAMETER(arg);
 	while (os_event_timedwait(obs->hotkeys.stop_event, 25) == ETIMEDOUT) {
-		lock();
+		if (!lock())
+			continue;
+
 		query_hotkeys();
 		unlock();
 	}
