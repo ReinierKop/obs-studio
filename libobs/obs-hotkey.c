@@ -472,11 +472,20 @@ static inline bool find_binding(obs_hotkey_id id, size_t *idx)
 	return data.found;
 }
 
+static inline void release_pressed_binding(obs_hotkey_binding_t *binding);
+
 static inline void remove_bindings(obs_hotkey_id id)
 {
 	size_t idx;
-	while (find_binding(id, &idx))
+	while (find_binding(id, &idx)) {
+		obs_hotkey_binding_t *binding =
+			&obs->hotkeys.bindings.array[idx];
+
+		if (binding->pressed)
+			release_pressed_binding(binding);
+
 		da_erase(obs->hotkeys.bindings, idx);
+	}
 }
 
 static inline bool unregister_hotkey(obs_hotkey_id id)
@@ -576,6 +585,16 @@ static inline bool is_pressed(obs_key_t key)
 			key);
 }
 
+static inline void release_pressed_binding(obs_hotkey_binding_t *binding)
+{
+	obs_hotkey_t *hotkey = binding->hotkey;
+
+	binding->pressed = false;
+	hotkey->pressed -= 1;
+	if (!hotkey->pressed)
+		hotkey->func(hotkey->id, hotkey, false, hotkey->data);
+}
+
 static inline void handle_binding(obs_hotkey_binding_t *binding,
 		uint32_t modifiers, bool no_primary, bool *pressed)
 {
@@ -598,9 +617,12 @@ static inline void handle_binding(obs_hotkey_binding_t *binding,
 		(no_primary && !binding->primary_action_release))
 		return;
 
+	obs_hotkey_t *hotkey = binding->hotkey;
+
 	binding->pressed = true;
-	binding->hotkey->func(binding->hotkey->id, binding->hotkey, true,
-			binding->hotkey->data);
+	if (!hotkey->pressed)
+		hotkey->func(hotkey->id, hotkey, true, hotkey->data);
+	hotkey->pressed += 1;
 
 	return;
 
@@ -610,10 +632,7 @@ reset:
 		(no_primary && binding->primary_action_release))
 		return;
 
-	binding->hotkey->func(binding->hotkey->id, binding->hotkey, false,
-			binding->hotkey->data);
-	binding->pressed = false;
-	return;
+	release_pressed_binding(binding);
 }
 
 struct obs_hotkey_internal_inject {

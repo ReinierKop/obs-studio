@@ -105,6 +105,7 @@ struct obs_hotkey {
 
 	obs_hotkey_func             func;
 	void                        *data;
+	int                         pressed;
 
 	obs_hotkey_primary_action_t primary_action;
 
