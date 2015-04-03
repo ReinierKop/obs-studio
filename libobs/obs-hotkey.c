@@ -271,7 +271,11 @@ static inline void load_binding(obs_hotkey_t *hotkey, obs_data_t *data)
 	load_modifier(modifiers, data, "alt", INTERACT_ALT_KEY);
 	load_modifier(modifiers, data, "command", INTERACT_COMMAND_KEY);
 
-	combo.key = obs_data_get_int(data, "key");
+	combo.key = obs_key_from_name(obs_data_get_string(data, "key"));
+	if (!modifiers && (combo.key == OBS_KEY_NONE ||
+			   combo.key == OBS_KEY_UNKNOWN ||
+			   combo.key >= OBS_KEY_LAST_VALUE))
+		return;
 
 	create_binding(hotkey, combo);
 }
@@ -400,7 +404,7 @@ static inline bool save_bindings_helper(size_t idx,
 	save_modifier(modifiers, hotkey, "alt", INTERACT_ALT_KEY);
 	save_modifier(modifiers, hotkey, "command", INTERACT_COMMAND_KEY);
 
-	obs_data_set_int(hotkey, "key", binding->key.key);
+	obs_data_set_string(hotkey, "key", obs_key_to_name(binding->key.key));
 
 	obs_data_array_push_back(h->array, hotkey);
 
