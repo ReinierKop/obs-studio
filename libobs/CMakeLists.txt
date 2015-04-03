@@ -223,6 +223,7 @@ set(libobs_libobs_SOURCES
 	obs-properties.c
 	obs-data.c
 	obs-hotkey.c
+	obs-hotkey-name-map.c
 	obs-module.c
 	obs-display.c
 	obs-view.c

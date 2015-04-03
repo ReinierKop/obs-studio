@@ -137,6 +137,9 @@ EXPORT void obs_key_to_str(obs_key_t key, struct dstr *str);
 EXPORT obs_key_t obs_key_from_virtual_key(int code);
 EXPORT int obs_key_to_virtual_key(obs_key_t key);
 
+EXPORT const char *obs_key_to_name(obs_key_t key);
+EXPORT obs_key_t obs_key_from_name(const char *name);
+
 #ifdef __cplusplus
 }
 #endif

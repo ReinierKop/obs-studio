@@ -138,6 +138,9 @@ struct obs_hotkey_binding {
 	obs_hotkey_t                *hotkey;
 };
 
+struct obs_hotkey_name_map;
+void obs_hotkey_name_map_free(void);
+
 
 /* ------------------------------------------------------------------------- */
 /* views */
@@ -270,6 +273,9 @@ struct obs_core_hotkeys {
 	DARRAY(obs_hotkey_binding_t)    bindings;
 
 	obs_hotkeys_platform_t          *platform_context;
+
+	pthread_once_t                  name_map_init_token;
+	struct obs_hotkey_name_map      *name_map;
 
 	signal_handler_t                *signals;
 };
