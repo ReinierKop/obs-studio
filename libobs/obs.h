@@ -1075,7 +1075,7 @@ EXPORT const char *obs_output_get_display_name(const char *id);
  * directshow, or other custom outputs.
  */
 EXPORT obs_output_t *obs_output_create(const char *id, const char *name,
-		obs_data_t *settings);
+		obs_data_t *settings, obs_data_t *hotkey_data);
 EXPORT void obs_output_destroy(obs_output_t *output);
 
 EXPORT const char *obs_output_get_name(const obs_output_t *output);
@@ -1269,7 +1269,7 @@ EXPORT const char *obs_encoder_get_display_name(const char *id);
  * @return           The video encoder context, or NULL if failed or not found.
  */
 EXPORT obs_encoder_t *obs_video_encoder_create(const char *id, const char *name,
-		obs_data_t *settings);
+		obs_data_t *settings, obs_data_t *hotkey_data);
 
 /**
  * Creates an audio encoder context
@@ -1281,7 +1281,8 @@ EXPORT obs_encoder_t *obs_video_encoder_create(const char *id, const char *name,
  * @return           The video encoder context, or NULL if failed or not found.
  */
 EXPORT obs_encoder_t *obs_audio_encoder_create(const char *id, const char *name,
-		obs_data_t *settings, size_t mixer_idx);
+		obs_data_t *settings, size_t mixer_idx,
+		obs_data_t *hotkey_data);
 
 /** Destroys an encoder context */
 EXPORT void obs_encoder_destroy(obs_encoder_t *encoder);
@@ -1387,7 +1388,7 @@ EXPORT void obs_free_encoder_packet(struct encoder_packet *packet);
 EXPORT const char *obs_service_get_display_name(const char *id);
 
 EXPORT obs_service_t *obs_service_create(const char *id, const char *name,
-		obs_data_t *settings);
+		obs_data_t *settings, obs_data_t *hotkey_data);
 EXPORT void obs_service_destroy(obs_service_t *service);
 
 EXPORT const char *obs_service_get_name(const obs_service_t *service);

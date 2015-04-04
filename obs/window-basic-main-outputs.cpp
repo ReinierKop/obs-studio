@@ -65,23 +65,25 @@ struct SimpleOutput : BasicOutputHandler {
 SimpleOutput::SimpleOutput(OBSBasic *main_) : BasicOutputHandler(main_)
 {
 	streamOutput = obs_output_create("rtmp_output", "simple_stream",
-			nullptr);
+			nullptr, nullptr);
 	if (!streamOutput)
 		throw "Failed to create stream output (simple output)";
 
 	fileOutput = obs_output_create("flv_output", "simple_file_output",
-			nullptr);
+			nullptr, nullptr);
 	if (!fileOutput)
 		throw "Failed to create recording output (simple output)";
 
-	h264 = obs_video_encoder_create("obs_x264", "simple_h264", nullptr);
+	h264 = obs_video_encoder_create("obs_x264", "simple_h264", nullptr,
+			nullptr);
 	if (!h264)
 		throw "Failed to create h264 encoder (simple output)";
 
-	aac = obs_audio_encoder_create("libfdk_aac", "simple_aac", nullptr, 0);
+	aac = obs_audio_encoder_create("libfdk_aac", "simple_aac", nullptr, 0,
+			nullptr);
 	if (!aac)
 		aac = obs_audio_encoder_create("ffmpeg_aac", "simple_aac",
-				nullptr, 0);
+				nullptr, 0, nullptr);
 	if (!aac)
 		throw "Failed to create audio encoder (simple output)";
 
@@ -318,26 +320,27 @@ AdvancedOutput::AdvancedOutput(OBSBasic *main_) : BasicOutputHandler(main_)
 			"obs-studio/basic/recordEncoder.json");
 
 	streamOutput = obs_output_create("rtmp_output", "adv_stream",
-			nullptr);
+			nullptr, nullptr);
 	if (!streamOutput)
 		throw "Failed to create stream output (advanced output)";
 
 	if (ffmpegRecording) {
 		fileOutput = obs_output_create("ffmpeg_output",
-				"adv_ffmpeg_output", nullptr);
+				"adv_ffmpeg_output", nullptr, nullptr);
 		if (!fileOutput)
 			throw "Failed to create recording FFmpeg output "
 			      "(advanced output)";
 	} else {
 		fileOutput = obs_output_create("flv_output", "adv_file_output",
-				nullptr);
+				nullptr, nullptr);
 		if (!fileOutput)
 			throw "Failed to create recording output "
 			      "(advanced output)";
 
 		if (!useStreamEncoder) {
 			h264Recording = obs_video_encoder_create(recordEncoder,
-					"recording_h264", recordEncSettings);
+					"recording_h264", recordEncSettings,
+					nullptr);
 			if (!h264Recording)
 				throw "Failed to create recording h264 "
 				      "encoder (advanced output)";
@@ -345,7 +348,7 @@ AdvancedOutput::AdvancedOutput(OBSBasic *main_) : BasicOutputHandler(main_)
 	}
 
 	h264Streaming = obs_video_encoder_create(streamEncoder,
-			"streaming_h264", streamEncSettings);
+			"streaming_h264", streamEncSettings, nullptr);
 	if (!h264Streaming)
 		throw "Failed to create streaming h264 encoder "
 		      "(advanced output)";
@@ -355,10 +358,10 @@ AdvancedOutput::AdvancedOutput(OBSBasic *main_) : BasicOutputHandler(main_)
 		sprintf(name, "adv_aac%d", i);
 
 		aacTrack[i] = obs_audio_encoder_create("libfdk_aac",
-				name, nullptr, i);
+				name, nullptr, i, nullptr);
 		if (!aacTrack[i])
 			aacTrack[i] = obs_audio_encoder_create("ffmpeg_aac",
-					name, nullptr, i);
+					name, nullptr, i, nullptr);
 		if (!aacTrack[i])
 			throw "Failed to create audio encoder "
 			      "(advanced output)";

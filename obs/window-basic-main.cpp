@@ -414,7 +414,8 @@ bool OBSBasic::LoadService()
 
 	obs_data_t *settings = obs_data_get_obj(data, "settings");
 
-	service = obs_service_create(type, "default_service", settings);
+	service = obs_service_create(type, "default_service", settings,
+			nullptr);
 
 	obs_data_release(settings);
 	obs_data_release(data);
@@ -427,7 +428,8 @@ bool OBSBasic::InitService()
 	if (LoadService())
 		return true;
 
-	service = obs_service_create("rtmp_common", "default_service", nullptr);
+	service = obs_service_create("rtmp_common", "default_service", nullptr,
+			nullptr);
 	if (!service)
 		return false;
 
@@ -1563,7 +1565,8 @@ void OBSBasic::RenderMain(void *data, uint32_t cx, uint32_t cy)
 obs_service_t *OBSBasic::GetService()
 {
 	if (!service)
-		service = obs_service_create("rtmp_common", NULL, NULL);
+		service = obs_service_create("rtmp_common", NULL, NULL,
+				nullptr);
 	return service;
 }
 
