@@ -127,6 +127,66 @@ static inline void context_add_hotkey(struct obs_context_data *context,
 	da_push_back(context->hotkeys, &id);
 }
 
+obs_hotkey_id obs_hotkey_register_frontend(const char *name,
+		const char *description, obs_hotkey_primary_action_t primary,
+		obs_hotkey_func func, void *data)
+{
+	return obs_hotkey_register_internal(OBS_HOTKEY_REGISTERER_FRONTEND,
+			NULL, NULL, name, description, primary,
+			func, data);
+}
+
+obs_hotkey_id obs_hotkey_register_encoder(obs_encoder_t *encoder,
+		const char *name, const char *description,
+		obs_hotkey_primary_action_t primary,
+		obs_hotkey_func func, void *data)
+{
+	if (!encoder)
+		return -1;
+
+	obs_hotkey_id id = obs_hotkey_register_internal(
+			OBS_HOTKEY_REGISTERER_ENCODER,
+			encoder, &encoder->context, name, description,
+			primary, func, data);
+	context_add_hotkey(&encoder->context, id);
+
+	return id;
+}
+
+obs_hotkey_id obs_hotkey_register_output(obs_output_t *output,
+		const char *name, const char *description,
+		obs_hotkey_primary_action_t primary,
+		obs_hotkey_func func, void *data)
+{
+	if (!output)
+		return -1;
+
+	obs_hotkey_id id = obs_hotkey_register_internal(
+			OBS_HOTKEY_REGISTERER_OUTPUT,
+			output, &output->context, name, description,
+			primary, func, data);
+	context_add_hotkey(&output->context, id);
+
+	return id;
+}
+
+obs_hotkey_id obs_hotkey_register_service(obs_service_t *service,
+		const char *name, const char *description,
+		obs_hotkey_primary_action_t primary,
+		obs_hotkey_func func, void *data)
+{
+	if (!service)
+		return -1;
+
+	obs_hotkey_id id = obs_hotkey_register_internal(
+			OBS_HOTKEY_REGISTERER_SERVICE,
+			service, &service->context, name, description,
+			primary, func, data);
+	context_add_hotkey(&service->context, id);
+
+	return id;
+}
+
 obs_hotkey_id obs_hotkey_register_source(obs_source_t *source, const char *name,
 		const char *description, obs_hotkey_primary_action_t primary,
 		obs_hotkey_func func, void *data)
@@ -141,15 +201,6 @@ obs_hotkey_id obs_hotkey_register_source(obs_source_t *source, const char *name,
 	context_add_hotkey(&source->context, id);
 
 	return id;
-}
-
-obs_hotkey_id obs_hotkey_register_frontend(const char *name,
-		const char *description, obs_hotkey_primary_action_t primary,
-		obs_hotkey_func func, void *data)
-{
-	return obs_hotkey_register_internal(OBS_HOTKEY_REGISTERER_FRONTEND,
-			NULL, NULL, name, description, primary,
-			func, data);
 }
 
 typedef bool (*obs_hotkey_internal_enum_func)(size_t idx,
@@ -364,14 +415,47 @@ static inline bool enum_load_bindings(size_t idx, obs_hotkey_t *hotkey,
 	return true;
 }
 
-void obs_hotkeys_load_source(obs_source_t *source, obs_data_t *bindings)
+void obs_hotkeys_load_encoder(obs_encoder_t *encoder, obs_data_t *hotkeys)
 {
-	if (!source || !bindings)
+	if (!encoder || !hotkeys)
 		return;
 	if (!lock())
 		return;
 
-	enum_context_hotkeys(&source->context, enum_load_bindings, bindings);
+	enum_context_hotkeys(&encoder->context, enum_load_bindings, hotkeys);
+	unlock();
+}
+
+void obs_hotkeys_load_output(obs_output_t *output, obs_data_t *hotkeys)
+{
+	if (!output || !hotkeys)
+		return;
+	if (!lock())
+		return;
+
+	enum_context_hotkeys(&output->context, enum_load_bindings, hotkeys);
+	unlock();
+}
+
+void obs_hotkeys_load_service(obs_service_t *service, obs_data_t *hotkeys)
+{
+	if (!service || !hotkeys)
+		return;
+	if (!lock())
+		return;
+
+	enum_context_hotkeys(&service->context, enum_load_bindings, hotkeys);
+	unlock();
+}
+
+void obs_hotkeys_load_source(obs_source_t *source, obs_data_t *hotkeys)
+{
+	if (!source || !hotkeys)
+		return;
+	if (!lock())
+		return;
+
+	enum_context_hotkeys(&source->context, enum_load_bindings, hotkeys);
 	unlock();
 }
 
@@ -456,6 +540,45 @@ static inline obs_data_t *save_context_hotkeys(struct obs_context_data *context)
 
 	obs_data_t *result = obs_data_create();
 	enum_context_hotkeys(context, enum_save_hotkey, result);
+	return result;
+}
+
+obs_data_t *obs_hotkeys_save_encoder(obs_encoder_t *encoder)
+{
+	obs_data_t *result = NULL;
+
+	if (!lock())
+		return result;
+
+	result = save_context_hotkeys(&encoder->context);
+	unlock();
+
+	return result;
+}
+
+obs_data_t *obs_hotkeys_save_output(obs_output_t *output)
+{
+	obs_data_t *result = NULL;
+
+	if (!lock())
+		return result;
+
+	result = save_context_hotkeys(&output->context);
+	unlock();
+
+	return result;
+}
+
+obs_data_t *obs_hotkeys_save_service(obs_service_t *service)
+{
+	obs_data_t *result = NULL;
+
+	if (!lock())
+		return result;
+
+	result = save_context_hotkeys(&service->context);
+	unlock();
+
 	return result;
 }
 

@@ -78,13 +78,28 @@ EXPORT obs_hotkey_t *obs_hotkey_binding_get_hotkey(
 typedef void (*obs_hotkey_func)(obs_hotkey_id id, obs_hotkey_t *hotkey,
 		bool pressed, void *data);
 
-EXPORT obs_hotkey_id obs_hotkey_register_source(obs_source_t *source,
+EXPORT obs_hotkey_id obs_hotkey_register_frontend(const char *name,
+		const char *description, obs_hotkey_primary_action_t primary,
+		obs_hotkey_func func, void *data);
+
+EXPORT obs_hotkey_id obs_hotkey_register_encoder(obs_encoder_t *encoder,
 		const char *name, const char *description,
 		obs_hotkey_primary_action_t primary,
 		obs_hotkey_func func, void *data);
 
-EXPORT obs_hotkey_id obs_hotkey_register_frontend(const char *name,
-		const char *description, obs_hotkey_primary_action_t primary,
+EXPORT obs_hotkey_id obs_hotkey_register_output(obs_output_t *output,
+		const char *name, const char *description,
+		obs_hotkey_primary_action_t primary,
+		obs_hotkey_func func, void *data);
+
+EXPORT obs_hotkey_id obs_hotkey_register_service(obs_service_t *service,
+		const char *name, const char *description,
+		obs_hotkey_primary_action_t primary,
+		obs_hotkey_func func, void *data);
+
+EXPORT obs_hotkey_id obs_hotkey_register_source(obs_source_t *source,
+		const char *name, const char *description,
+		obs_hotkey_primary_action_t primary,
 		obs_hotkey_func func, void *data);
 
 EXPORT void obs_hotkey_unregister(obs_hotkey_id id);
@@ -100,9 +115,24 @@ EXPORT void obs_hotkey_load_bindings(obs_hotkey_id id,
 
 EXPORT void obs_hotkey_load(obs_hotkey_id id, obs_data_array_t *data);
 
+EXPORT void obs_hotkeys_load_encoder(obs_encoder_t *encoder,
+		obs_data_t *hotkeys);
+
+EXPORT void obs_hotkeys_load_output(obs_output_t *output, obs_data_t *hotkeys);
+
+EXPORT void obs_hotkeys_load_service(obs_service_t *service,
+		obs_data_t *hotkeys);
+
 EXPORT void obs_hotkeys_load_source(obs_source_t *source, obs_data_t *hotkeys);
 
+
 EXPORT obs_data_array_t *obs_hotkey_save(obs_hotkey_id id);
+
+EXPORT obs_data_t *obs_hotkeys_save_encoder(obs_encoder_t *encoder);
+
+EXPORT obs_data_t *obs_hotkeys_save_output(obs_output_t *output);
+
+EXPORT obs_data_t *obs_hotkeys_save_service(obs_service_t *service);
 
 EXPORT obs_data_t *obs_hotkeys_save_source(obs_source_t *source);
 
