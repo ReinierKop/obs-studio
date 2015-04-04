@@ -413,10 +413,12 @@ bool OBSBasic::LoadService()
 	type = obs_data_get_string(data, "type");
 
 	obs_data_t *settings = obs_data_get_obj(data, "settings");
+	obs_data_t *hotkey_data = obs_data_get_obj(data, "hotkeys");
 
 	service = obs_service_create(type, "default_service", settings,
-			nullptr);
+			hotkey_data);
 
+	obs_data_release(hotkey_data);
 	obs_data_release(settings);
 	obs_data_release(data);
 
