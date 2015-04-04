@@ -31,6 +31,7 @@ class OBSBasic;
 class QAbstractButton;
 class QComboBox;
 class OBSPropertiesView;
+class OBSHotkeyWidget;
 
 #include "ui_OBSBasicSettings.h"
 
@@ -50,9 +51,6 @@ using OBSFFCodecDesc = std::unique_ptr<const ff_codec_desc,
 		OBSFFDeleter>;
 using OBSFFFormatDesc = std::unique_ptr<const ff_format_desc,
 		OBSFFDeleter>;
-
-class OBSHotkeyEdit;
-class OBSHotkeyWidget;
 
 class OBSBasicSettings : public QDialog {
 	Q_OBJECT
@@ -219,76 +217,5 @@ protected:
 
 public:
 	OBSBasicSettings(QWidget *parent);
-};
-
-class OBSHotkeyWidget : public QWidget {
-	Q_OBJECT;
-
-public:
-	OBSHotkeyWidget(obs_hotkey_id id, std::string name,
-			const std::vector<obs_key_combination_t> &combos={},
-			QWidget *parent=nullptr)
-		: QWidget(parent),
-		  id(id),
-		  name(std::move(name))
-	{
-		SetKeyCombinations(combos);
-	}
-
-	void SetKeyCombinations(const std::vector<obs_key_combination_t>&);
-
-	obs_hotkey_id id;
-	std::string name;
-	std::vector<QPointer<OBSHotkeyEdit>> edits;
-	std::vector<QPointer<QPushButton>> removeButtons;
-	bool changed = false;
-
-	bool Changed() const;
-
-	QVBoxLayout *layout() const
-	{
-		return dynamic_cast<QVBoxLayout*>(QWidget::layout());
-	}
-
-private:
-	void AddEdit(obs_key_combination combo, int idx=-1);
-
-signals:
-	void KeyChanged();
-};
-
-class OBSHotkeyEdit : public QLineEdit {
-	Q_OBJECT;
-
-public:
-	OBSHotkeyEdit(obs_key_combination_t original,
-			QWidget *parent=nullptr)
-		: QLineEdit(parent),
-		  original(original),
-		  changed(false)
-	{
-		setReadOnly(true);
-		setAttribute(Qt::WA_MacShowFocusRect, true);
-		InitSignalHandler();
-		ResetKey();
-	}
-
-	obs_key_combination_t original;
-	obs_key_combination_t key;
-	bool                  changed;
-protected:
-	OBSSignal             layoutChanged;
-
-	void InitSignalHandler();
-	void keyPressEvent(QKeyEvent *event);
-	void RenderKey();
-
-public slots:
-	void ReloadKeyLayout();
-	void ResetKey();
-	void ClearKey();
-
-signals:
-	void KeyChanged(obs_key_combination_t);
 };
 

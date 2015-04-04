@@ -17,7 +17,6 @@
 ******************************************************************************/
 
 #include <obs.hpp>
-#include <util/dstr.hpp>
 #include <util/util.hpp>
 #include <util/lexer.h>
 #include <sstream>
@@ -31,6 +30,7 @@
 #include <QStandardItemModel>
 #include <QSpacerItem>
 
+#include "hotkey-edit.hpp"
 #include "obs-app.hpp"
 #include "platform.hpp"
 #include "properties-view.hpp"
@@ -1276,18 +1276,6 @@ void OBSBasicSettings::LoadAdvancedSettings()
 	loading = false;
 }
 
-static inline bool key_combo_empty(obs_key_combination_t combo)
-{
-	return !combo.modifiers &&
-		(combo.key == OBS_KEY_NONE || combo.key == OBS_KEY_UNKNOWN);
-}
-
-static inline bool operator!=(const obs_key_combination_t &c1,
-		const obs_key_combination_t &c2)
-{
-	return c1.modifiers != c2.modifiers || c1.key != c2.key;
-}
-
 template <typename Func>
 static inline void LayoutHotkey(obs_hotkey_id id, obs_hotkey_t *key, Func &&fun,
 		const map<obs_hotkey_id, vector<obs_key_combination_t>> &keys)
@@ -2173,221 +2161,5 @@ void OBSBasicSettings::HotkeysChanged()
 
 	if (hotkeysChanged)
 		EnableApplyButton(true);
-}
-
-void OBSHotkeyEdit::keyPressEvent(QKeyEvent *event)
-{
-	event->accept();
-	if (event->isAutoRepeat())
-		return;
-
-	DStr str;
-	switch (event->key()) {
-	case Qt::Key_Shift:
-	case Qt::Key_Control:
-	case Qt::Key_Alt:
-	case Qt::Key_Meta:
-#ifdef __APPLE__
-	case Qt::Key_CapsLock:
-#endif
-		key.key = OBS_KEY_NONE;
-		break;
-	default:
-		key.key = obs_key_from_virtual_key(event->nativeVirtualKey());
-		obs_key_to_str(key.key, str);
-	}
-
-	key.modifiers = TranslateQtKeyboardEventModifiers(event->modifiers());
-
-	if (key.key == original.key && key.modifiers == original.modifiers)
-		return;
-
-	changed = true;
-	emit KeyChanged(key);
-
-	RenderKey();
-}
-
-void OBSHotkeyEdit::RenderKey()
-{
-	DStr str;
-	obs_key_to_str(key.key, str);
-
-	int mods = 0;
-	auto setMod = [&](uint32_t flag, int code)
-	{
-		if ((key.modifiers & flag) == flag)
-			mods += code;
-	};
-#ifdef __APPLE__
-	bool macFlip = true;
-#else
-	bool macFlip = false;
-#endif
-	setMod(INTERACT_SHIFT_KEY,   Qt::SHIFT);
-	setMod(INTERACT_CONTROL_KEY, macFlip ? Qt::META : Qt::CTRL);
-	setMod(INTERACT_ALT_KEY,     Qt::ALT);
-	setMod(INTERACT_COMMAND_KEY, macFlip ? Qt::CTRL : Qt::META);
-
-	setText(QKeySequence(mods).toString(QKeySequence::NativeText) + str);
-}
-
-void OBSHotkeyEdit::ResetKey()
-{
-	key = original;
-
-	changed = false;
-	emit KeyChanged(key);
-
-	RenderKey();
-}
-
-void OBSHotkeyEdit::ClearKey()
-{
-	key = {0, OBS_KEY_NONE};
-
-	changed = true;
-	emit KeyChanged(key);
-
-	RenderKey();
-}
-
-void OBSHotkeyEdit::InitSignalHandler()
-{
-	layoutChanged = {obs_get_signal_handler(),
-			"hotkey_layout_change",
-			[](void *this_, calldata_t*)
-	{
-		auto edit = static_cast<OBSHotkeyEdit*>(this_);
-		QMetaObject::invokeMethod(edit, "ReloadKeyLayout");
-	}, this};
-}
-
-void OBSHotkeyEdit::ReloadKeyLayout()
-{
-	RenderKey();
-}
-
-void OBSHotkeyWidget::SetKeyCombinations(
-		const std::vector<obs_key_combination_t> &combos)
-{
-	QPointer<QVBoxLayout> layout = new QVBoxLayout;
-	layout->setSpacing(0);
-	layout->setMargin(0);
-	setLayout(layout);
-
-	if (combos.empty())
-		AddEdit({0, OBS_KEY_NONE});
-
-	for (auto combo : combos)
-		AddEdit(combo);
-}
-
-bool OBSHotkeyWidget::Changed() const
-{
-	return changed ||
-		std::any_of(begin(edits), end(edits), [](OBSHotkeyEdit *edit)
-	{
-		return edit->changed;
-	});
-}
-
-void OBSHotkeyWidget::AddEdit(obs_key_combination combo, int idx)
-{
-	OBSHotkeyEdit *edit = new OBSHotkeyEdit(combo);
-
-	QPushButton *reset = new QPushButton;
-	reset->setText(QTStr("Reset"));
-	reset->setEnabled(false);
-
-	QPushButton *clear = new QPushButton;
-	clear->setText(QTStr("Clear"));
-	clear->setEnabled(!key_combo_empty(combo));
-
-	QObject::connect(edit, &OBSHotkeyEdit::KeyChanged,
-			[=](obs_key_combination_t new_combo)
-	{
-		clear->setEnabled(!key_combo_empty(new_combo));
-		reset->setEnabled(combo != new_combo);
-	});
-
-	//TODO: localize + and -
-	auto add = new QPushButton;
-	add->setText("+");
-
-	auto remove = new QPushButton;
-	remove->setText("-");
-	remove->setEnabled(removeButtons.size() > 0);
-
-	auto CurrentIndex = [&, remove]
-	{
-		auto res = std::find(begin(removeButtons),
-					end(removeButtons),
-					remove);
-		return std::distance(begin(removeButtons), res);
-	};
-
-	QObject::connect(add, &QPushButton::clicked,
-			[&, CurrentIndex]
-	{
-		AddEdit({0, OBS_KEY_NONE}, CurrentIndex() + 1);
-	});
-
-	QObject::connect(remove, &QPushButton::clicked,
-			[&, CurrentIndex]
-	{
-		auto idx = CurrentIndex();
-
-		auto &edit = *(begin(edits) + idx);
-		if (!key_combo_empty(edit->original)) {
-			changed = true;
-			emit KeyChanged();
-		}
-
-		removeButtons.erase(begin(removeButtons) + idx);
-		edits.erase(begin(edits) + idx);
-
-		auto item = layout()->takeAt(idx);
-		QLayoutItem *child = nullptr;
-		while ((child = item->layout()->takeAt(0))) {
-			delete child->widget();
-			delete child;
-		}
-		delete item;
-
-		if (removeButtons.size() == 1)
-			removeButtons.front()->setEnabled(false);
-	});
-
-	QHBoxLayout *subLayout = new QHBoxLayout;
-	subLayout->addWidget(edit);
-	subLayout->addWidget(reset);
-	subLayout->addWidget(clear);
-	subLayout->addWidget(add);
-	subLayout->addWidget(remove);
-
-	if (removeButtons.size() == 1)
-		removeButtons.front()->setEnabled(true);
-
-	if (idx != -1) {
-		removeButtons.insert(begin(removeButtons) + idx, remove);
-		edits.insert(begin(edits) + idx, edit);
-	} else {
-		removeButtons.emplace_back(remove);
-		edits.emplace_back(edit);
-	}
-
-	layout()->insertLayout(idx, subLayout);
-
-	QObject::connect(reset, &QPushButton::clicked,
-			edit, &OBSHotkeyEdit::ResetKey);
-	QObject::connect(clear, &QPushButton::clicked,
-			edit, &OBSHotkeyEdit::ClearKey);
-
-	QObject::connect(edit, &OBSHotkeyEdit::KeyChanged,
-			[&](obs_key_combination)
-	{
-		emit KeyChanged();
-	});
 }
 
