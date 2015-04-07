@@ -33,8 +33,8 @@ enum obs_key {
 typedef enum obs_key obs_key_t;
 
 enum obs_hotkey_primary_action {
+	OBS_HOTKEY_PRESS,
 	OBS_HOTKEY_RELEASE,
-	OBS_HOTKEY_PRESS
 };
 typedef enum obs_hotkey_primary_action obs_hotkey_primary_action_t;
 
