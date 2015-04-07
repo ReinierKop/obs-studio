@@ -57,6 +57,8 @@ QObject *CreateShortcutFilter()
 		auto key_event = [](QKeyEvent *event)
 		{
 			obs_key_combination_t hotkey = {0, OBS_KEY_NONE};
+			bool pressed = event->type() == QEvent::KeyPress;
+
 			switch (event->key()) {
 			case Qt::Key_Shift:
 			case Qt::Key_Control:
@@ -79,8 +81,7 @@ QObject *CreateShortcutFilter()
 			hotkey.modifiers = TranslateQtKeyboardEventModifiers(
 							event->modifiers());
 
-			obs_hotkey_inject_event(hotkey,
-				event->type() == QEvent::KeyPress);
+			obs_hotkey_inject_event(hotkey, pressed);
 		};
 
 		switch (event->type()) {

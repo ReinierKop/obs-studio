@@ -35,37 +35,47 @@ static inline bool operator!=(const obs_key_combination_t &c1,
 	return c1.modifiers != c2.modifiers || c1.key != c2.key;
 }
 
+static inline bool operator==(const obs_key_combination_t &c1,
+		const obs_key_combination_t &c2)
+{
+	return !(c1 != c2);
+}
+
 void OBSHotkeyEdit::keyPressEvent(QKeyEvent *event)
 {
-	event->accept();
 	if (event->isAutoRepeat())
 		return;
 
-	DStr str;
+	obs_key_combination_t new_key;
+
 	switch (event->key()) {
 	case Qt::Key_Shift:
 	case Qt::Key_Control:
 	case Qt::Key_Alt:
 	case Qt::Key_Meta:
-		key.key = OBS_KEY_NONE;
+		new_key.key = OBS_KEY_NONE;
 		break;
 
 #ifdef __APPLE__
 	case Qt::Key_CapsLock:
 		// kVK_CapsLock == 57
-		key.key = obs_key_from_virtual_key(57);
+		new_key.key = obs_key_from_virtual_key(57);
 		break;
 #endif
 
 	default:
-		key.key = obs_key_from_virtual_key(event->nativeVirtualKey());
+		new_key.key =
+			obs_key_from_virtual_key(event->nativeVirtualKey());
 	}
 
 	key.modifiers = TranslateQtKeyboardEventModifiers(event->modifiers());
 
-	if (key.key == original.key && key.modifiers == original.modifiers)
+	if (new_key == key)
 		return;
 
+	key = new_key;
+
+	DStr str;
 	obs_key_to_str(key.key, str);
 
 	changed = true;
