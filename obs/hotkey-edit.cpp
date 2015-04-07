@@ -84,6 +84,37 @@ void OBSHotkeyEdit::keyPressEvent(QKeyEvent *event)
 	RenderKey();
 }
 
+#ifdef __APPLE__
+void OBSHotkeyEdit::keyReleaseEvent(QKeyEvent *event)
+{
+	if (event->isAutoRepeat())
+		return;
+
+	if (event->key() != Qt::Key_CapsLock)
+		return;
+
+	obs_key_combination_t new_key;
+
+	// kVK_CapsLock == 57
+	new_key.key = obs_key_from_virtual_key(57);
+	new_key.modifiers =
+		TranslateQtKeyboardEventModifiers(event->modifiers());
+
+	if (new_key == key)
+		return;
+
+	key = new_key;
+
+	DStr str;
+	obs_key_to_str(key.key, str);
+
+	changed = true;
+	emit KeyChanged(key);
+
+	RenderKey();
+}
+#endif
+
 void OBSHotkeyEdit::RenderKey()
 {
 	DStr str;

@@ -85,6 +85,9 @@ protected:
 
 	void InitSignalHandler();
 	void keyPressEvent(QKeyEvent *event);
+#ifdef __APPLE__
+	void keyReleaseEvent(QKeyEvent *event);
+#endif
 	void RenderKey();
 
 public slots:

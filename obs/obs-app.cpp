@@ -70,6 +70,7 @@ QObject *CreateShortcutFilter()
 			case Qt::Key_CapsLock:
 				// kVK_CapsLock == 57
 				hotkey.key = obs_key_from_virtual_key(57);
+				pressed = true;
 				break;
 #endif
 
