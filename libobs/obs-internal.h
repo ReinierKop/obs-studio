@@ -113,6 +113,17 @@ struct obs_hotkey {
 	void                        *registerer;
 };
 
+struct obs_hotkey_pair {
+	obs_hotkey_pair_id          pair_id;
+	obs_hotkey_id               id[2];
+	obs_hotkey_active_func      func[2];
+	bool                        pressed0 : 1;
+	bool                        pressed1 : 1;
+	void                        *data[2];
+};
+
+typedef struct obs_hotkey_pair obs_hotkey_pair_t;
+
 typedef struct obs_hotkeys_platform obs_hotkeys_platform_t;
 
 void *obs_hotkey_thread(void *param);
@@ -265,6 +276,8 @@ struct obs_core_hotkeys {
 	pthread_mutex_t                 mutex;
 	DARRAY(obs_hotkey_t)            hotkeys;
 	obs_hotkey_id                   next_id;
+	DARRAY(obs_hotkey_pair_t)       hotkey_pairs;
+	obs_hotkey_pair_id              next_pair_id;
 
 	pthread_t                       hotkey_thread;
 	bool                            hotkey_thread_initialized;
@@ -322,6 +335,7 @@ struct obs_context_data {
 	proc_handler_t                  *procs;
 
 	DARRAY(obs_hotkey_id)           hotkeys;
+	DARRAY(obs_hotkey_pair_id)      hotkey_pairs;
 	obs_data_t                      *hotkey_data;
 
 	DARRAY(char*)                   rename_cache;

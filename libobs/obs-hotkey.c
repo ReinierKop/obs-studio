@@ -206,6 +206,95 @@ obs_hotkey_id obs_hotkey_register_source(obs_source_t *source, const char *name,
 	return id;
 }
 
+static inline void fixup_pair_pointers(void);
+
+static obs_hotkey_pair_t *create_hotkey_pair(struct obs_context_data *context,
+		obs_hotkey_active_func func0, obs_hotkey_active_func func1,
+		void *data0, void *data1)
+{
+	assert((obs->hotkeys.next_pair_id + 1) < OBS_INVALID_HOTKEY_PAIR_ID);
+
+	obs_hotkey_pair_t *base_addr = obs->hotkeys.hotkey_pairs.array;
+	obs_hotkey_pair_t *pair      =
+		da_push_back_new(obs->hotkeys.hotkey_pairs);
+
+	pair->pair_id = obs->hotkeys.next_pair_id++;
+	pair->func[0] = func0;
+	pair->func[1] = func1;
+	pair->id[0] = OBS_INVALID_HOTKEY_ID;
+	pair->id[1] = OBS_INVALID_HOTKEY_ID;
+	pair->data[0] = data0;
+	pair->data[1] = data1;
+
+	if (context)
+		da_push_back(context->hotkey_pairs, &pair->pair_id);
+
+	if (base_addr != obs->hotkeys.hotkey_pairs.array)
+		fixup_pair_pointers();
+
+	return pair;
+}
+
+static void obs_hotkey_pair_first_func(obs_hotkey_id id, obs_hotkey_t *hotkey,
+		bool pressed, void *data)
+{
+	UNUSED_PARAMETER(id);
+
+	obs_hotkey_pair_t *pair = data;
+	if (pair->pressed1)
+		return;
+
+	if (pair->pressed0 && !pressed)
+		pair->pressed0 = false;
+	else if (pair->func[0](pair->pair_id, hotkey, pressed, pair->data[0]))
+		pair->pressed0 = pressed;
+}
+
+static void obs_hotkey_pair_second_func(obs_hotkey_id id, obs_hotkey_t *hotkey,
+		bool pressed, void *data)
+{
+	UNUSED_PARAMETER(id);
+
+	obs_hotkey_pair_t *pair = data;
+	if (pair->pressed0)
+		return;
+
+	if (pair->pressed1 && !pressed)
+		pair->pressed1 = false;
+	else if (pair->func[1](pair->pair_id, hotkey, pressed, pair->data[1]))
+		pair->pressed1 = pressed;
+}
+
+obs_hotkey_pair_id obs_hotkey_pair_register_frontend(
+		const char *name0, const char *description0,
+		const char *name1, const char *description1,
+		obs_hotkey_primary_action_t primary,
+		obs_hotkey_active_func func0, obs_hotkey_active_func func1,
+		void *data0, void *data1)
+{
+
+	if (!lock())
+		return OBS_INVALID_HOTKEY_PAIR_ID;
+
+	obs_hotkey_pair_t *pair = create_hotkey_pair(NULL,
+			func0, func1, data0, data1);
+
+	pair->id[0] = obs_hotkey_register_internal(
+			OBS_HOTKEY_REGISTERER_FRONTEND, NULL, NULL,
+			name0, description0, primary,
+			obs_hotkey_pair_first_func, pair);
+
+	pair->id[1] = obs_hotkey_register_internal(
+			OBS_HOTKEY_REGISTERER_FRONTEND, NULL, NULL,
+			name1, description1, primary,
+			obs_hotkey_pair_second_func, pair);
+
+	obs_hotkey_pair_id id = pair->pair_id;
+
+	unlock();
+	return id;
+}
+
 typedef bool (*obs_hotkey_internal_enum_func)(size_t idx,
 		obs_hotkey_t *hotkey, void *data);
 
@@ -213,6 +302,20 @@ static inline void enum_hotkeys(obs_hotkey_internal_enum_func func, void *data)
 {
 	const size_t num    = obs->hotkeys.hotkeys.num;
 	obs_hotkey_t *array = obs->hotkeys.hotkeys.array;
+	for (size_t i = 0; i < num; i++) {
+		if (!func(i, &array[i], data))
+			break;
+	}
+}
+
+typedef bool (*obs_hotkey_pair_internal_enum_func)(size_t idx,
+		obs_hotkey_pair_t *pair, void *data);
+
+static inline void enum_hotkey_pairs(obs_hotkey_pair_internal_enum_func func,
+		void *data)
+{
+	const size_t num         = obs->hotkeys.hotkey_pairs.num;
+	obs_hotkey_pair_t *array = obs->hotkeys.hotkey_pairs.array;
 	for (size_t i = 0; i < num; i++) {
 		if (!func(i, &array[i], data))
 			break;
@@ -276,6 +379,52 @@ static inline bool pointer_fixup_func(size_t idx, obs_hotkey_binding_t *binding,
 static inline void fixup_pointers(void)
 {
 	enum_bindings(pointer_fixup_func, NULL);
+}
+
+struct obs_hotkey_internal_find_pair_forward {
+	obs_hotkey_pair_id id;
+	bool               found;
+	size_t             idx;
+};
+
+static inline bool find_pair_id_helper(size_t idx, obs_hotkey_pair_t *pair,
+		void *data)
+{
+	struct obs_hotkey_internal_find_pair_forward *find = data;
+	if (pair->pair_id != find->id)
+		return true;
+
+	find->idx   = idx;
+	find->found = true;
+	return false;
+}
+
+static inline bool find_pair_id(obs_hotkey_pair_id id, size_t *idx)
+{
+	struct obs_hotkey_internal_find_pair_forward find = {id, false, 0};
+	enum_hotkey_pairs(find_pair_id_helper, &find);
+	*idx = find.idx;
+	return find.found;
+}
+
+static inline bool pair_pointer_fixup_func(size_t idx,
+		obs_hotkey_pair_t *pair, void *data)
+{
+	UNUSED_PARAMETER(idx);
+	UNUSED_PARAMETER(data);
+
+	if (find_id(pair->id[0], &idx))
+		obs->hotkeys.hotkeys.array[idx].data = pair;
+
+	if (find_id(pair->id[1], &idx))
+		obs->hotkeys.hotkeys.array[idx].data = pair;
+
+	return true;
+}
+
+static inline void fixup_pair_pointers(void)
+{
+	enum_hotkey_pairs(pair_pointer_fixup_func, NULL);
 }
 
 static inline void enum_context_hotkeys(struct obs_context_data *context,
@@ -459,6 +608,31 @@ void obs_hotkeys_load_source(obs_source_t *source, obs_data_t *hotkeys)
 		return;
 
 	enum_context_hotkeys(&source->context, enum_load_bindings, hotkeys);
+	unlock();
+}
+
+void obs_hotkey_pair_load(obs_hotkey_pair_id id, obs_data_array_t *data0,
+		obs_data_array_t *data1)
+{
+	if ((!data0 && !data1) || !lock())
+		return;
+
+	size_t idx;
+	if (!find_pair_id(id, &idx))
+		goto unlock;
+
+	obs_hotkey_pair_t *pair = &obs->hotkeys.hotkey_pairs.array[idx];
+	
+	if (find_id(pair->id[0], &idx)) {
+		remove_bindings(pair->id[0]);
+		load_bindings(&obs->hotkeys.hotkeys.array[idx], data0);
+	}
+	if (find_id(pair->id[1], &idx)) {
+		remove_bindings(pair->id[1]);
+		load_bindings(&obs->hotkeys.hotkeys.array[idx], data1);
+	}
+
+unlock:
 	unlock();
 }
 
@@ -654,6 +828,19 @@ static inline bool unregister_hotkey(obs_hotkey_id id)
 	return obs->hotkeys.hotkeys.num >= idx;
 }
 
+static inline bool unregister_hotkey_pair(obs_hotkey_pair_id id)
+{
+	if (id >= obs->hotkeys.next_pair_id)
+		return false;
+
+	size_t idx;
+	if (!find_id(id, &idx))
+		return false;
+
+	da_erase(obs->hotkeys.hotkey_pairs, idx);
+	return obs->hotkeys.hotkey_pairs.num >= idx;
+}
+
 void obs_hotkey_unregister(obs_hotkey_id id)
 {
 	if (!lock())
@@ -663,10 +850,19 @@ void obs_hotkey_unregister(obs_hotkey_id id)
 	unlock();
 }
 
-void obs_hotkeys_context_release(struct obs_context_data *context)
+void obs_hotkey_pair_unregister(obs_hotkey_pair_id id)
 {
 	if (!lock())
 		return;
+	
+	if (unregister_hotkey_pair(id))
+		fixup_pair_pointers();
+
+	unlock();
+}
+
+static void context_release_hotkeys(struct obs_context_data *context)
+{
 	if (!context->hotkeys.num)
 		goto cleanup;
 
@@ -680,6 +876,33 @@ void obs_hotkeys_context_release(struct obs_context_data *context)
 
 cleanup:
 	da_free(context->hotkeys);
+}
+
+static void context_release_hotkey_pairs(struct obs_context_data *context)
+{
+	if (!context->hotkey_pairs.num)
+		goto cleanup;
+
+	bool need_fixup = false;
+	for (size_t i = 0; i < context->hotkey_pairs.num; i++)
+		need_fixup = unregister_hotkey_pair(context->hotkeys.array[i])
+			|| need_fixup;
+
+	if (need_fixup)
+		fixup_pair_pointers();
+
+cleanup:
+	da_free(context->hotkey_pairs);
+}
+
+void obs_hotkeys_context_release(struct obs_context_data *context)
+{
+	if (!lock())
+		return;
+
+	context_release_hotkeys(context);
+	context_release_hotkey_pairs(context);
+
 	obs_data_release(context->hotkey_data);
 	unlock();
 }
@@ -692,8 +915,9 @@ void obs_hotkeys_free(void)
 		bfree(hotkeys[i].name);
 		bfree(hotkeys[i].description);
 	}
-	da_free(obs->hotkeys.hotkeys);
 	da_free(obs->hotkeys.bindings);
+	da_free(obs->hotkeys.hotkeys);
+	da_free(obs->hotkeys.hotkey_pairs);
 }
 
 struct obs_hotkey_internal_enum_forward {

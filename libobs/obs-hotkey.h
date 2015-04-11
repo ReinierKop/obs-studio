@@ -23,6 +23,8 @@ extern "C" {
 
 typedef size_t obs_hotkey_id;
 #define OBS_INVALID_HOTKEY_ID (~(obs_hotkey_id)0)
+typedef size_t obs_hotkey_pair_id;
+#define OBS_INVALID_HOTKEY_PAIR_ID (~(obs_hotkey_pair_id)0)
 
 enum obs_key {
 #define OBS_HOTKEY(x) x,
@@ -102,6 +104,16 @@ EXPORT obs_hotkey_id obs_hotkey_register_source(obs_source_t *source,
 		obs_hotkey_primary_action_t primary,
 		obs_hotkey_func func, void *data);
 
+typedef bool (*obs_hotkey_active_func)(obs_hotkey_pair_id id,
+		obs_hotkey_t *hotkey, bool pressed, void *data);
+
+EXPORT obs_hotkey_pair_id obs_hotkey_pair_register_frontend(
+		const char *name0, const char *description0,
+		const char *name1, const char *description1,
+		obs_hotkey_primary_action_t primary,
+		obs_hotkey_active_func func0, obs_hotkey_active_func func1,
+		void *data0, void *data1);
+
 EXPORT void obs_hotkey_unregister(obs_hotkey_id id);
 
 /* loading hotkeys (associating a hotkey with a physical key and modifiers) */
@@ -124,6 +136,9 @@ EXPORT void obs_hotkeys_load_service(obs_service_t *service,
 		obs_data_t *hotkeys);
 
 EXPORT void obs_hotkeys_load_source(obs_source_t *source, obs_data_t *hotkeys);
+
+EXPORT void obs_hotkey_pair_load(obs_hotkey_pair_id id, obs_data_array_t *data0,
+		obs_data_array_t *data1);
 
 
 EXPORT obs_data_array_t *obs_hotkey_save(obs_hotkey_id id);
