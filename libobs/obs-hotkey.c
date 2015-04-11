@@ -90,7 +90,6 @@ static inline obs_hotkey_id obs_hotkey_register_internal(
 		obs_hotkey_registerer_t type, void *registerer,
 		struct obs_context_data *context,
 		const char *name, const char *description,
-		obs_hotkey_primary_action_t primary,
 		obs_hotkey_func func, void *data)
 {
 	assert((obs->hotkeys.next_id + 1) < OBS_INVALID_HOTKEY_ID);
@@ -104,7 +103,6 @@ static inline obs_hotkey_id obs_hotkey_register_internal(
 	hotkey->description     = bstrdup(description);
 	hotkey->func            = func;
 	hotkey->data            = data;
-	hotkey->primary_action  = primary;
 	hotkey->registerer_type = type;
 	hotkey->registerer      = registerer;
 
@@ -124,16 +122,14 @@ static inline obs_hotkey_id obs_hotkey_register_internal(
 }
 
 obs_hotkey_id obs_hotkey_register_frontend(const char *name,
-		const char *description, obs_hotkey_primary_action_t primary,
-		obs_hotkey_func func, void *data)
+		const char *description, obs_hotkey_func func, void *data)
 {
 	if (!lock())
 		return OBS_INVALID_HOTKEY_ID;
 
 	obs_hotkey_id id =  obs_hotkey_register_internal(
 			OBS_HOTKEY_REGISTERER_FRONTEND, NULL, NULL,
-			name, description, primary,
-			func, data);
+			name, description, func, data);
 
 	unlock();
 	return id;
@@ -141,7 +137,6 @@ obs_hotkey_id obs_hotkey_register_frontend(const char *name,
 
 obs_hotkey_id obs_hotkey_register_encoder(obs_encoder_t *encoder,
 		const char *name, const char *description,
-		obs_hotkey_primary_action_t primary,
 		obs_hotkey_func func, void *data)
 {
 	if (!encoder || !lock())
@@ -150,7 +145,7 @@ obs_hotkey_id obs_hotkey_register_encoder(obs_encoder_t *encoder,
 	obs_hotkey_id id = obs_hotkey_register_internal(
 			OBS_HOTKEY_REGISTERER_ENCODER,
 			encoder, &encoder->context, name, description,
-			primary, func, data);
+			func, data);
 
 	unlock();
 	return id;
@@ -158,7 +153,6 @@ obs_hotkey_id obs_hotkey_register_encoder(obs_encoder_t *encoder,
 
 obs_hotkey_id obs_hotkey_register_output(obs_output_t *output,
 		const char *name, const char *description,
-		obs_hotkey_primary_action_t primary,
 		obs_hotkey_func func, void *data)
 {
 	if (!output || !lock())
@@ -167,7 +161,7 @@ obs_hotkey_id obs_hotkey_register_output(obs_output_t *output,
 	obs_hotkey_id id = obs_hotkey_register_internal(
 			OBS_HOTKEY_REGISTERER_OUTPUT,
 			output, &output->context, name, description,
-			primary, func, data);
+			func, data);
 
 	unlock();
 	return id;
@@ -175,7 +169,6 @@ obs_hotkey_id obs_hotkey_register_output(obs_output_t *output,
 
 obs_hotkey_id obs_hotkey_register_service(obs_service_t *service,
 		const char *name, const char *description,
-		obs_hotkey_primary_action_t primary,
 		obs_hotkey_func func, void *data)
 {
 	if (!service || !lock())
@@ -184,15 +177,14 @@ obs_hotkey_id obs_hotkey_register_service(obs_service_t *service,
 	obs_hotkey_id id = obs_hotkey_register_internal(
 			OBS_HOTKEY_REGISTERER_SERVICE,
 			service, &service->context, name, description,
-			primary, func, data);
+			func, data);
 
 	unlock();
 	return id;
 }
 
 obs_hotkey_id obs_hotkey_register_source(obs_source_t *source, const char *name,
-		const char *description, obs_hotkey_primary_action_t primary,
-		obs_hotkey_func func, void *data)
+		const char *description, obs_hotkey_func func, void *data)
 {
 	if (!source || !lock())
 		return OBS_INVALID_HOTKEY_ID;
@@ -200,7 +192,7 @@ obs_hotkey_id obs_hotkey_register_source(obs_source_t *source, const char *name,
 	obs_hotkey_id id = obs_hotkey_register_internal(
 			OBS_HOTKEY_REGISTERER_SOURCE,
 			source, &source->context, name, description,
-			primary, func, data);
+			func, data);
 
 	unlock();
 	return id;
@@ -268,7 +260,6 @@ static void obs_hotkey_pair_second_func(obs_hotkey_id id, obs_hotkey_t *hotkey,
 obs_hotkey_pair_id obs_hotkey_pair_register_frontend(
 		const char *name0, const char *description0,
 		const char *name1, const char *description1,
-		obs_hotkey_primary_action_t primary,
 		obs_hotkey_active_func func0, obs_hotkey_active_func func1,
 		void *data0, void *data1)
 {
@@ -281,12 +272,12 @@ obs_hotkey_pair_id obs_hotkey_pair_register_frontend(
 
 	pair->id[0] = obs_hotkey_register_internal(
 			OBS_HOTKEY_REGISTERER_FRONTEND, NULL, NULL,
-			name0, description0, primary,
+			name0, description0,
 			obs_hotkey_pair_first_func, pair);
 
 	pair->id[1] = obs_hotkey_register_internal(
 			OBS_HOTKEY_REGISTERER_FRONTEND, NULL, NULL,
-			name1, description1, primary,
+			name1, description1,
 			obs_hotkey_pair_second_func, pair);
 
 	obs_hotkey_pair_id id = pair->pair_id;
@@ -994,8 +985,7 @@ static inline void handle_binding(obs_hotkey_binding_t *binding,
 			(!pressed && !is_pressed(binding->key.key)))
 		goto reset;
 
-	if (binding->pressed ||
-		(no_primary && !binding->primary_action_release))
+	if (binding->pressed || no_primary)
 		return;
 
 	obs_hotkey_t *hotkey = binding->hotkey;
@@ -1009,8 +999,7 @@ static inline void handle_binding(obs_hotkey_binding_t *binding,
 
 reset:
 	binding->modifiers_match = modifiers_match_;
-	if (!binding->pressed ||
-		(no_primary && binding->primary_action_release))
+	if (!binding->pressed)
 		return;
 
 	release_pressed_binding(binding);

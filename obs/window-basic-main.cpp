@@ -749,14 +749,14 @@ static inline void InitStartStopPair(OBSBasic &basic, ConfigFile &config,
 
 	obs_hotkey_id id1, id2;
 
-	id1 = obs_hotkey_register_frontend(name1, desc1, OBS_HOTKEY_PRESS,
+	id1 = obs_hotkey_register_frontend(name1, desc1,
 			[](obs_hotkey_id id, obs_hotkey_t *key, bool pressed,
 				void *data)
 	{
 		(*static_cast<func1_t*>(data))(id, key, pressed);
 	}, pair.func[0].target<func1_t>());
 
-	id2 = obs_hotkey_register_frontend(name2, desc2, OBS_HOTKEY_PRESS,
+	id2 = obs_hotkey_register_frontend(name2, desc2,
 			[](obs_hotkey_id id, obs_hotkey_t *key, bool pressed,
 				void *data)
 	{
@@ -835,7 +835,6 @@ void OBSBasic::InitHotkeys()
 			QT_TO_UTF8(QTStr("Basic.Hotkeys.StartStreaming")),
 			"StopStreaming",
 			QT_TO_UTF8(QTStr("Basic.Hotkeys.StopStreaming")),
-			OBS_HOTKEY_PRESS,
 			MAKE_CALLBACK(!basic.outputHandler->StreamingActive(),
 				"StartStreaming"),
 			MAKE_CALLBACK(basic.outputHandler->StreamingActive(),
@@ -848,7 +847,6 @@ void OBSBasic::InitHotkeys()
 			QT_TO_UTF8(QTStr("Basic.Hotkeys.StartRecording")),
 			"StopRecording",
 			QT_TO_UTF8(QTStr("Basic.Hotkeys.StopRecording")),
-			OBS_HOTKEY_PRESS,
 			MAKE_CALLBACK(!basic.outputHandler->RecordingActive(),
 				"StartRecording"),
 			MAKE_CALLBACK(basic.outputHandler->RecordingActive(),
@@ -1027,7 +1025,6 @@ void OBSBasic::AddScene(OBSSource source)
 
 	obs_hotkey_register_source(source, "BasicSelectScene",
 			QT_TO_UTF8(QTStr("Basic.Hotkeys.SelectScene")),
-			OBS_HOTKEY_PRESS,
 			[](obs_hotkey_id, obs_hotkey_t*, bool pressed,
 				void *data)
 	{

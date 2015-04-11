@@ -34,12 +34,6 @@ enum obs_key {
 };
 typedef enum obs_key obs_key_t;
 
-enum obs_hotkey_primary_action {
-	OBS_HOTKEY_PRESS,
-	OBS_HOTKEY_RELEASE,
-};
-typedef enum obs_hotkey_primary_action obs_hotkey_primary_action_t;
-
 struct obs_key_combination {
 	uint32_t  modifiers;
 	obs_key_t key;
@@ -81,27 +75,22 @@ typedef void (*obs_hotkey_func)(obs_hotkey_id id, obs_hotkey_t *hotkey,
 		bool pressed, void *data);
 
 EXPORT obs_hotkey_id obs_hotkey_register_frontend(const char *name,
-		const char *description, obs_hotkey_primary_action_t primary,
-		obs_hotkey_func func, void *data);
+		const char *description, obs_hotkey_func func, void *data);
 
 EXPORT obs_hotkey_id obs_hotkey_register_encoder(obs_encoder_t *encoder,
 		const char *name, const char *description,
-		obs_hotkey_primary_action_t primary,
 		obs_hotkey_func func, void *data);
 
 EXPORT obs_hotkey_id obs_hotkey_register_output(obs_output_t *output,
 		const char *name, const char *description,
-		obs_hotkey_primary_action_t primary,
 		obs_hotkey_func func, void *data);
 
 EXPORT obs_hotkey_id obs_hotkey_register_service(obs_service_t *service,
 		const char *name, const char *description,
-		obs_hotkey_primary_action_t primary,
 		obs_hotkey_func func, void *data);
 
 EXPORT obs_hotkey_id obs_hotkey_register_source(obs_source_t *source,
 		const char *name, const char *description,
-		obs_hotkey_primary_action_t primary,
 		obs_hotkey_func func, void *data);
 
 typedef bool (*obs_hotkey_active_func)(obs_hotkey_pair_id id,
@@ -110,7 +99,6 @@ typedef bool (*obs_hotkey_active_func)(obs_hotkey_pair_id id,
 EXPORT obs_hotkey_pair_id obs_hotkey_pair_register_frontend(
 		const char *name0, const char *description0,
 		const char *name1, const char *description1,
-		obs_hotkey_primary_action_t primary,
 		obs_hotkey_active_func func0, obs_hotkey_active_func func1,
 		void *data0, void *data1);
 

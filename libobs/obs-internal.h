@@ -107,8 +107,6 @@ struct obs_hotkey {
 	void                        *data;
 	int                         pressed;
 
-	obs_hotkey_primary_action_t primary_action;
-
 	obs_hotkey_registerer_t     registerer_type;
 	void                        *registerer;
 };
@@ -143,7 +141,6 @@ struct obs_hotkey_binding {
 	obs_key_combination_t       key;
 	bool                        pressed : 1;
 	bool                        modifiers_match : 1;
-	bool                        primary_action_release : 1;
 
 	obs_hotkey_id               hotkey_id;
 	obs_hotkey_t                *hotkey;
