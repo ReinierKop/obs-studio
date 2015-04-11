@@ -50,10 +50,12 @@ class QNetworkReply;
 
 struct BasicOutputHandler;
 
+#if 0
 struct ExclusiveHotkeyPair {
 	std::function<void(obs_hotkey_id, obs_hotkey_t*, bool)> func[2];
 	bool                                                    pressed[2];
 };
+#endif
 
 class OBSBasic : public OBSMainWindow {
 	Q_OBJECT
@@ -156,7 +158,11 @@ private:
 	void Nudge(int dist, MoveDir dir);
 	void OpenProjector(obs_source_t *source, int monitor);
 
+#if 0
 	ExclusiveHotkeyPair streamingHotkeys, recordingHotkeys;
+#else
+	obs_hotkey_pair_id streamingHotkeys, recordingHotkeys;
+#endif
 
 public slots:
 	void StartStreaming();

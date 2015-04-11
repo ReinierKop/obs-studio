@@ -687,6 +687,7 @@ void OBSBasic::OBSInit()
 				Qt::QueuedConnection);
 }
 
+#if 0
 static inline void LoadHotkeyConfig(ConfigFile &config, const char *name,
 		obs_hotkey_id id)
 {
@@ -765,9 +766,11 @@ static inline void InitStartStopPair(OBSBasic &basic, ConfigFile &config,
 	LoadHotkeyConfig(config, name1, id1);
 	LoadHotkeyConfig(config, name2, id2);
 }
+#endif
 
 void OBSBasic::InitHotkeys()
 {
+#if 0
 	InitStartStopPair(*this, basicConfig, streamingHotkeys,
 			*outputHandler.get(),
 			&BasicOutputHandler::StreamingActive,
@@ -783,6 +786,78 @@ void OBSBasic::InitHotkeys()
 			QT_TO_UTF8(QTStr("Basic.Hotkeys.StartRecording")),
 			"StopRecording", "StopRecording",
 			QT_TO_UTF8(QTStr("Basic.Hotkeys.StopRecording")));
+#else
+
+	auto LoadHotkeyData = [&](const char *name) -> OBSData
+	{
+		const char *info = config_get_string(basicConfig,
+				"Hotkeys", name);
+		if (!info)
+			return {};
+
+		blog(LOG_INFO, "Loading hotkey info: %s", info);
+
+		obs_data_t *data = obs_data_create_from_json(info);
+		if (!data)
+			return {};
+
+		OBSData res = data;
+		obs_data_release(data);
+		return res;
+	};
+
+	auto LoadHotkeyPair = [&](obs_hotkey_pair_id id, const char *name0,
+			const char *name1)
+	{
+		obs_data_array_t *array0 =
+			obs_data_get_array(LoadHotkeyData(name0), "bindings");
+		obs_data_array_t *array1 =
+			obs_data_get_array(LoadHotkeyData(name1), "bindings");
+
+		obs_hotkey_pair_load(id, array0, array1);
+		obs_data_array_release(array0);
+		obs_data_array_release(array1);
+	};
+
+#define MAKE_CALLBACK(pred, metaMethod) \
+	[](obs_hotkey_pair_id, obs_hotkey_t*, bool pressed, void *data) \
+	{ \
+		OBSBasic &basic = *static_cast<OBSBasic*>(data); \
+		if (pred && pressed) { \
+			QMetaObject::invokeMethod(&basic, metaMethod); \
+			return true; \
+		} \
+		return false; \
+	}
+
+	streamingHotkeys = obs_hotkey_pair_register_frontend(
+			"StartStreaming",
+			QT_TO_UTF8(QTStr("Basic.Hotkeys.StartStreaming")),
+			"StopStreaming",
+			QT_TO_UTF8(QTStr("Basic.Hotkeys.StopStreaming")),
+			OBS_HOTKEY_PRESS,
+			MAKE_CALLBACK(!basic.outputHandler->StreamingActive(),
+				"StartStreaming"),
+			MAKE_CALLBACK(basic.outputHandler->StreamingActive(),
+				"StopStreaming"),
+			this, this);
+	LoadHotkeyPair(streamingHotkeys, "StartStreaming", "StopStreaming");
+
+	recordingHotkeys = obs_hotkey_pair_register_frontend(
+			"StartRecording",
+			QT_TO_UTF8(QTStr("Basic.Hotkeys.StartRecording")),
+			"StopRecording",
+			QT_TO_UTF8(QTStr("Basic.Hotkeys.StopRecording")),
+			OBS_HOTKEY_PRESS,
+			MAKE_CALLBACK(!basic.outputHandler->RecordingActive(),
+				"StartRecording"),
+			MAKE_CALLBACK(basic.outputHandler->RecordingActive(),
+				"StopRecording"),
+			this, this);
+	LoadHotkeyPair(recordingHotkeys, "StartRecording", "StopRecording");
+
+#undef MAKE_CALLBACK
+#endif
 }
 
 OBSBasic::~OBSBasic()
