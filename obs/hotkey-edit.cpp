@@ -75,9 +75,6 @@ void OBSHotkeyEdit::keyPressEvent(QKeyEvent *event)
 
 	key = new_key;
 
-	DStr str;
-	obs_key_to_str(key.key, str);
-
 	changed = true;
 	emit KeyChanged(key);
 
@@ -104,9 +101,6 @@ void OBSHotkeyEdit::keyReleaseEvent(QKeyEvent *event)
 		return;
 
 	key = new_key;
-
-	DStr str;
-	obs_key_to_str(key.key, str);
 
 	changed = true;
 	emit KeyChanged(key);

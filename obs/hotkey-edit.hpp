@@ -68,8 +68,7 @@ public:
 	OBSHotkeyEdit(obs_key_combination_t original,
 			QWidget *parent=nullptr)
 		: QLineEdit(parent),
-		  original(original),
-		  changed(false)
+		  original(original)
 	{
 		setReadOnly(true);
 		setAttribute(Qt::WA_MacShowFocusRect, true);
@@ -79,15 +78,17 @@ public:
 
 	obs_key_combination_t original;
 	obs_key_combination_t key;
-	bool                  changed;
+	bool                  changed = false;
 protected:
 	OBSSignal             layoutChanged;
 
 	void InitSignalHandler();
-	void keyPressEvent(QKeyEvent *event);
+
+	void keyPressEvent(QKeyEvent *event) override;
 #ifdef __APPLE__
-	void keyReleaseEvent(QKeyEvent *event);
+	void keyReleaseEvent(QKeyEvent *event) override;
 #endif
+
 	void RenderKey();
 
 public slots:
