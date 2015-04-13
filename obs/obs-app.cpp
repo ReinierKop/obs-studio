@@ -54,6 +54,59 @@ QObject *CreateShortcutFilter()
 {
 	return new OBSEventFilter([](QObject *, QEvent *event)
 	{
+		auto mouse_event = [](QMouseEvent &event)
+		{
+			obs_key_combination_t hotkey = {0, OBS_KEY_NONE};
+			bool pressed = event.type() == QEvent::MouseButtonPress;
+
+			switch (event.button()) {
+			case Qt::NoButton:
+			case Qt::LeftButton:
+			case Qt::RightButton:
+			case Qt::AllButtons:
+			case Qt::MouseButtonMask:
+				return false;
+
+			case Qt::MidButton:
+				hotkey.key = OBS_KEY_MOUSE3;
+				break;
+
+#define MAP_BUTTON(i, j) case Qt::ExtraButton ## i: \
+		hotkey.key = OBS_KEY_MOUSE ## j; break;
+			MAP_BUTTON( 1,  4);
+			MAP_BUTTON( 2,  5);
+			MAP_BUTTON( 3,  6);
+			MAP_BUTTON( 4,  7);
+			MAP_BUTTON( 5,  8);
+			MAP_BUTTON( 6,  9);
+			MAP_BUTTON( 7, 10);
+			MAP_BUTTON( 8, 11);
+			MAP_BUTTON( 9, 12);
+			MAP_BUTTON(10, 13);
+			MAP_BUTTON(11, 14);
+			MAP_BUTTON(12, 15);
+			MAP_BUTTON(13, 16);
+			MAP_BUTTON(14, 17);
+			MAP_BUTTON(15, 18);
+			MAP_BUTTON(16, 19);
+			MAP_BUTTON(17, 20);
+			MAP_BUTTON(18, 21);
+			MAP_BUTTON(19, 22);
+			MAP_BUTTON(20, 23);
+			MAP_BUTTON(21, 24);
+			MAP_BUTTON(22, 25);
+			MAP_BUTTON(23, 26);
+			MAP_BUTTON(24, 27);
+#undef MAP_BUTTON
+			}
+
+			hotkey.modifiers = TranslateQtKeyboardEventModifiers(
+							event.modifiers());
+
+			obs_hotkey_inject_event(hotkey, pressed);
+			return true;
+		};
+
 		auto key_event = [](QKeyEvent *event)
 		{
 			obs_key_combination_t hotkey = {0, OBS_KEY_NONE};
@@ -86,9 +139,11 @@ QObject *CreateShortcutFilter()
 		};
 
 		switch (event->type()) {
-		/*case QEvent::MouseButtonPress:
+		case QEvent::MouseButtonPress:
 		case QEvent::MouseButtonRelease:
-		case QEvent::MouseButtonDblClick:
+			return mouse_event(*static_cast<QMouseEvent*>(event));
+
+		/*case QEvent::MouseButtonDblClick:
 		case QEvent::Wheel:*/
 		case QEvent::KeyPress:
 		case QEvent::KeyRelease:

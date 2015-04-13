@@ -88,6 +88,7 @@ protected:
 #ifdef __APPLE__
 	void keyReleaseEvent(QKeyEvent *event) override;
 #endif
+	void mousePressEvent(QMouseEvent *event) override;
 
 	void RenderKey();
 
