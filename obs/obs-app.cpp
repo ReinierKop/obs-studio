@@ -92,8 +92,9 @@ QObject *CreateShortcutFilter()
 		case QEvent::Wheel:*/
 		case QEvent::KeyPress:
 		case QEvent::KeyRelease:
-			//qDebug() << event;
 			key_event(static_cast<QKeyEvent*>(event));
+			return true;
+
 		default:
 			return false;
 		}
