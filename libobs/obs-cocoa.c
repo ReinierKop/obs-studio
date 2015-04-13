@@ -331,6 +331,47 @@ int obs_key_to_virtual_key(obs_key_t code)
 	return INVALID_KEY;
 }
 
+static bool mouse_button_to_str(obs_key_t key, struct dstr *str)
+{
+#define MAP_BUTTON(i) case OBS_KEY_MOUSE ## i: \
+		dstr_copy(str, "Mouse " #i); return true
+	switch (key) {
+	MAP_BUTTON(1);
+	MAP_BUTTON(2);
+	MAP_BUTTON(3);
+	MAP_BUTTON(4);
+	MAP_BUTTON(5);
+	MAP_BUTTON(6);
+	MAP_BUTTON(7);
+	MAP_BUTTON(8);
+	MAP_BUTTON(9);
+	MAP_BUTTON(10);
+	MAP_BUTTON(11);
+	MAP_BUTTON(12);
+	MAP_BUTTON(13);
+	MAP_BUTTON(14);
+	MAP_BUTTON(15);
+	MAP_BUTTON(16);
+	MAP_BUTTON(17);
+	MAP_BUTTON(18);
+	MAP_BUTTON(19);
+	MAP_BUTTON(20);
+	MAP_BUTTON(21);
+	MAP_BUTTON(22);
+	MAP_BUTTON(23);
+	MAP_BUTTON(24);
+	MAP_BUTTON(25);
+	MAP_BUTTON(26);
+	MAP_BUTTON(27);
+	MAP_BUTTON(28);
+	MAP_BUTTON(29);
+	default: break;
+	}
+#undef MAP_BUTTON
+
+	return false;
+}
+
 static inline bool code_to_str(int code, struct dstr *str)
 {
 #define MAP_GLYPH(c, g) case c: dstr_from_wcs(str, (wchar_t[]){g, 0}); return true
@@ -388,6 +429,9 @@ static inline bool code_to_str(int code, struct dstr *str)
 
 void obs_key_to_str(obs_key_t key, struct dstr *str)
 {
+	if (mouse_button_to_str(key, str))
+		return;
+
 	int code = obs_key_to_virtual_key(key);
 	if (code_to_str(code, str))
 		return;
@@ -996,9 +1040,30 @@ void obs_hotkeys_platform_free(struct obs_core_hotkeys *hotkeys)
 	free_hotkeys_platform(hotkeys->platform_context);
 }
 
+typedef unsigned long NSUInteger;
+static bool mouse_button_pressed(obs_key_t key, bool *pressed)
+{
+	if (key < OBS_KEY_FIRST_MOUSE || key > OBS_KEY_LAST_MOUSE)
+		return false;
+
+	Class NSEvent = objc_getClass("NSEvent");
+	SEL pressedMouseButtons = sel_registerName("pressedMouseButtons");
+	NSUInteger buttons = (NSUInteger)objc_msgSend((id)NSEvent,
+			pressedMouseButtons);
+
+	assert((~(NSUInteger)0) >
+			(1 << (OBS_KEY_LAST_MOUSE - OBS_KEY_FIRST_MOUSE)));
+	*pressed = (buttons & (1 << (key - OBS_KEY_FIRST_MOUSE))) != 0;
+	return true;
+}
+
 bool obs_hotkeys_platform_is_pressed(obs_hotkeys_platform_t *plat,
 		obs_key_t key)
 {
+	bool mouse_pressed = false;
+	if (mouse_button_pressed(key, &mouse_pressed))
+		return mouse_pressed;
+
 	if (!plat)
 		return false;
 

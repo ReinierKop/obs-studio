@@ -30,7 +30,10 @@ enum obs_key {
 #define OBS_HOTKEY(x) x,
 #include "obs-hotkeys.h"
 #undef OBS_HOTKEY
-	OBS_KEY_LAST_VALUE //not an actual key
+	OBS_KEY_LAST_VALUE, //not an actual key
+
+	OBS_KEY_FIRST_MOUSE = OBS_KEY_MOUSE1,
+	OBS_KEY_LAST_MOUSE = OBS_KEY_MOUSE29,
 };
 typedef enum obs_key obs_key_t;
 
