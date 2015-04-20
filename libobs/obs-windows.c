@@ -221,7 +221,40 @@ bool obs_hotkeys_platform_is_pressed(obs_hotkeys_platform_t *context,
 void obs_key_to_str(obs_key_t key, struct dstr *str)
 {
 	wchar_t name[128] = L"";
-	UINT scan_code = MapVirtualKey(obs_key_to_virtual_key(key), 0) << 16;
+	UINT scan_code;
+	int vk;
+
+	if (obs->hotkeys.translations[key]) {
+		dstr_copy(str, obs->hotkeys.translations[key]);
+		return;
+	}
+
+	switch (key) {
+	case OBS_KEY_MOUSE1:
+	case OBS_KEY_MOUSE2:
+	case OBS_KEY_MOUSE3:
+	case OBS_KEY_MOUSE4:
+	case OBS_KEY_MOUSE5:
+		dstr_printf(str, "Mouse %d", (int)(key - OBS_KEY_MOUSE1 + 1));
+		return;
+	}
+
+	vk = obs_key_to_virtual_key(key);
+	scan_code = MapVirtualKey(vk, 0) << 16;
+
+	switch (vk) {
+	case VK_HOME:
+	case VK_END:
+	case VK_LEFT:
+	case VK_UP:
+	case VK_RIGHT:
+	case VK_DOWN:
+	case VK_PRIOR:
+	case VK_NEXT:
+	case VK_INSERT:
+	case VK_DELETE:
+		scan_code |= 0x01000000;
+	}
 
 	GetKeyNameTextW(scan_code, name, 128);
 
