@@ -220,9 +220,14 @@ bool obs_hotkeys_platform_is_pressed(obs_hotkeys_platform_t *context,
 
 void obs_key_to_str(obs_key_t key, struct dstr *str)
 {
-	wchar_t name[128] = L"";
+	wchar_t name[128] = L"Unknown";
 	UINT scan_code;
 	int vk;
+
+	if (key == OBS_KEY_NONE) {
+		dstr_free(str);
+		return;
+	}
 
 	if (obs->hotkeys.translations[key]) {
 		dstr_copy(str, obs->hotkeys.translations[key]);
@@ -256,7 +261,8 @@ void obs_key_to_str(obs_key_t key, struct dstr *str)
 		scan_code |= 0x01000000;
 	}
 
-	GetKeyNameTextW(scan_code, name, 128);
+	if (scan_code)
+		GetKeyNameTextW(scan_code, name, 128);
 
 	dstr_from_wcs(str, name);
 }
