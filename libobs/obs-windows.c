@@ -212,7 +212,7 @@ void obs_hotkeys_platform_free(struct obs_core_hotkeys *hotkeys)
 bool obs_hotkeys_platform_is_pressed(obs_hotkeys_platform_t *context,
 		obs_key_t key)
 {
-	short state = GetAsyncKeyState(key & 0xFFFF);
+	short state = GetAsyncKeyState(obs_key_to_virtual_key(key));
 	bool down = (state & 0x8000) != 0;
 	bool was_down = (state & 0x1) != 0;
 	return down || was_down;
@@ -221,8 +221,7 @@ bool obs_hotkeys_platform_is_pressed(obs_hotkeys_platform_t *context,
 void obs_key_to_str(obs_key_t key, struct dstr *str)
 {
 	wchar_t name[128] = L"";
-	UINT vk = key & 0xFFFF;
-	UINT scan_code = MapVirtualKey(obs_key_to_virtual_key(vk), 0) << 16;
+	UINT scan_code = MapVirtualKey(obs_key_to_virtual_key(key), 0) << 16;
 
 	GetKeyNameTextW(scan_code, name, 128);
 
