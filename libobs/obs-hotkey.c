@@ -909,6 +909,13 @@ void obs_hotkeys_free(void)
 	da_free(obs->hotkeys.bindings);
 	da_free(obs->hotkeys.hotkeys);
 	da_free(obs->hotkeys.hotkey_pairs);
+
+	for (size_t i = 0; i < OBS_KEY_LAST_VALUE; i++) {
+		if (obs->hotkeys.translations[i]) {
+			bfree(obs->hotkeys.translations[i]);
+			obs->hotkeys.translations[i] = NULL;
+		}
+	}
 }
 
 struct obs_hotkey_internal_enum_forward {
@@ -1090,3 +1097,11 @@ void *obs_hotkey_thread(void *arg)
 	return NULL;
 }
 
+void obs_set_key_translation(obs_key_t key, const char *translation)
+{
+	bfree(obs->hotkeys.translations[key]);
+	obs->hotkeys.translations[key] = NULL;
+
+	if (translation)
+		obs->hotkeys.translations[key] = bstrdup(translation);
+}

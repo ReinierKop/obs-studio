@@ -107,6 +107,8 @@ EXPORT obs_hotkey_pair_id obs_hotkey_pair_register_frontend(
 
 EXPORT void obs_hotkey_unregister(obs_hotkey_id id);
 
+EXPORT void obs_set_key_translation(obs_key_t key, const char *translation);
+
 /* loading hotkeys (associating a hotkey with a physical key and modifiers) */
 
 /*EXPORT void obs_hotkey_set(obs_hotkey_id id, obs_key_combination_t hotkey);

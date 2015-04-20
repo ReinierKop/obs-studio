@@ -288,6 +288,8 @@ struct obs_core_hotkeys {
 	struct obs_hotkey_name_map      *name_map;
 
 	signal_handler_t                *signals;
+
+	char                            *translations[OBS_KEY_LAST_VALUE];
 };
 
 struct obs_core {
