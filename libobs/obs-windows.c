@@ -197,203 +197,10 @@ void log_system_info(void)
 
 
 struct obs_hotkeys_platform {
-	bool blank;
+	int vk_codes[OBS_KEY_LAST_VALUE];
 };
 
-bool obs_hotkeys_platform_init(struct obs_core_hotkeys *hotkeys)
-{
-	return true;
-}
-
-void obs_hotkeys_platform_free(struct obs_core_hotkeys *hotkeys)
-{
-}
-
-bool obs_hotkeys_platform_is_pressed(obs_hotkeys_platform_t *context,
-		obs_key_t key)
-{
-	short state = GetAsyncKeyState(obs_key_to_virtual_key(key));
-	bool down = (state & 0x8000) != 0;
-	bool was_down = (state & 0x1) != 0;
-	return down || was_down;
-}
-
-void obs_key_to_str(obs_key_t key, struct dstr *str)
-{
-	wchar_t name[128] = L"Unknown";
-	UINT scan_code;
-	int vk;
-
-	if (key == OBS_KEY_NONE) {
-		dstr_free(str);
-		return;
-	}
-
-	if (obs->hotkeys.translations[key]) {
-		dstr_copy(str, obs->hotkeys.translations[key]);
-		return;
-	}
-
-	switch (key) {
-	case OBS_KEY_MOUSE1:
-	case OBS_KEY_MOUSE2:
-	case OBS_KEY_MOUSE3:
-	case OBS_KEY_MOUSE4:
-	case OBS_KEY_MOUSE5:
-		dstr_printf(str, "Mouse %d", (int)(key - OBS_KEY_MOUSE1 + 1));
-		return;
-	}
-
-	vk = obs_key_to_virtual_key(key);
-	scan_code = MapVirtualKey(vk, 0) << 16;
-
-	switch (vk) {
-	case VK_HOME:
-	case VK_END:
-	case VK_LEFT:
-	case VK_UP:
-	case VK_RIGHT:
-	case VK_DOWN:
-	case VK_PRIOR:
-	case VK_NEXT:
-	case VK_INSERT:
-	case VK_DELETE:
-		scan_code |= 0x01000000;
-	}
-
-	if (scan_code)
-		GetKeyNameTextW(scan_code, name, 128);
-
-	dstr_from_wcs(str, name);
-}
-
-obs_key_t obs_key_from_virtual_key(int code)
-{
-	switch (code) {
-	case VK_TAB: return OBS_KEY_TAB;
-	case VK_BACK: return OBS_KEY_BACKSPACE;
-	case VK_INSERT: return OBS_KEY_INSERT;
-	case VK_DELETE: return OBS_KEY_DELETE;
-	case VK_PAUSE: return OBS_KEY_PAUSE;
-	case VK_HOME: return OBS_KEY_HOME;
-	case VK_END: return OBS_KEY_END;
-	case VK_LEFT: return OBS_KEY_LEFT;
-	case VK_UP: return OBS_KEY_UP;
-	case VK_RIGHT: return OBS_KEY_RIGHT;
-	case VK_DOWN: return OBS_KEY_DOWN;
-	case VK_PRIOR: return OBS_KEY_PAGEUP;
-	case VK_NEXT: return OBS_KEY_PAGEDOWN;
-
-	case VK_SHIFT: return OBS_KEY_SHIFT;
-	case VK_CONTROL: return OBS_KEY_CONTROL;
-	case VK_MENU: return OBS_KEY_ALT;
-	case VK_CAPITAL: return OBS_KEY_CAPSLOCK;
-	case VK_NUMLOCK: return OBS_KEY_NUMLOCK;
-	case VK_SCROLL: return OBS_KEY_SCROLLLOCK;
-
-	case VK_F1: return OBS_KEY_F1;
-	case VK_F2: return OBS_KEY_F2;
-	case VK_F3: return OBS_KEY_F3;
-	case VK_F4: return OBS_KEY_F4;
-	case VK_F5: return OBS_KEY_F5;
-	case VK_F6: return OBS_KEY_F6;
-	case VK_F7: return OBS_KEY_F7;
-	case VK_F8: return OBS_KEY_F8;
-	case VK_F9: return OBS_KEY_F9;
-	case VK_F10: return OBS_KEY_F10;
-	case VK_F11: return OBS_KEY_F11;
-	case VK_F12: return OBS_KEY_F12;
-	case VK_F13: return OBS_KEY_F13;
-	case VK_F14: return OBS_KEY_F14;
-	case VK_F15: return OBS_KEY_F15;
-	case VK_F16: return OBS_KEY_F16;
-	case VK_F17: return OBS_KEY_F17;
-	case VK_F18: return OBS_KEY_F18;
-	case VK_F19: return OBS_KEY_F19;
-	case VK_F20: return OBS_KEY_F20;
-	case VK_F21: return OBS_KEY_F21;
-	case VK_F22: return OBS_KEY_F22;
-	case VK_F23: return OBS_KEY_F23;
-	case VK_F24: return OBS_KEY_F24;
-
-	case VK_SPACE: return OBS_KEY_SPACE;
-
-	case VK_OEM_7: return OBS_KEY_APOSTROPHE;
-	case VK_OEM_PLUS: return OBS_KEY_PLUS;
-	case VK_OEM_COMMA: return OBS_KEY_COMMA;
-	case VK_OEM_MINUS: return OBS_KEY_MINUS;
-	case VK_OEM_PERIOD: return OBS_KEY_PERIOD;
-	case VK_OEM_2: return OBS_KEY_SLASH;
-	case '0': return OBS_KEY_0;
-	case '1': return OBS_KEY_1;
-	case '2': return OBS_KEY_2;
-	case '3': return OBS_KEY_3;
-	case '4': return OBS_KEY_4;
-	case '5': return OBS_KEY_5;
-	case '6': return OBS_KEY_6;
-	case '7': return OBS_KEY_7;
-	case '8': return OBS_KEY_8;
-	case '9': return OBS_KEY_9;
-	case VK_MULTIPLY: return OBS_KEY_NUMASTERISK;
-	case VK_ADD: return OBS_KEY_NUMPLUS;
-	case VK_SUBTRACT: return OBS_KEY_NUMMINUS;
-	case VK_DECIMAL: return OBS_KEY_NUMPERIOD;
-	case VK_DIVIDE: return OBS_KEY_NUMSLASH;
-	case VK_NUMPAD0: return OBS_KEY_NUM0;
-	case VK_NUMPAD1: return OBS_KEY_NUM1;
-	case VK_NUMPAD2: return OBS_KEY_NUM2;
-	case VK_NUMPAD3: return OBS_KEY_NUM3;
-	case VK_NUMPAD4: return OBS_KEY_NUM4;
-	case VK_NUMPAD5: return OBS_KEY_NUM5;
-	case VK_NUMPAD6: return OBS_KEY_NUM6;
-	case VK_NUMPAD7: return OBS_KEY_NUM7;
-	case VK_NUMPAD8: return OBS_KEY_NUM8;
-	case VK_NUMPAD9: return OBS_KEY_NUM9;
-	case VK_OEM_1: return OBS_KEY_SEMICOLON;
-	case 'A': return OBS_KEY_A;
-	case 'B': return OBS_KEY_B;
-	case 'C': return OBS_KEY_C;
-	case 'D': return OBS_KEY_D;
-	case 'E': return OBS_KEY_E;
-	case 'F': return OBS_KEY_F;
-	case 'G': return OBS_KEY_G;
-	case 'H': return OBS_KEY_H;
-	case 'I': return OBS_KEY_I;
-	case 'J': return OBS_KEY_J;
-	case 'K': return OBS_KEY_K;
-	case 'L': return OBS_KEY_L;
-	case 'M': return OBS_KEY_M;
-	case 'N': return OBS_KEY_N;
-	case 'O': return OBS_KEY_O;
-	case 'P': return OBS_KEY_P;
-	case 'Q': return OBS_KEY_Q;
-	case 'R': return OBS_KEY_R;
-	case 'S': return OBS_KEY_S;
-	case 'T': return OBS_KEY_T;
-	case 'U': return OBS_KEY_U;
-	case 'V': return OBS_KEY_V;
-	case 'W': return OBS_KEY_W;
-	case 'X': return OBS_KEY_X;
-	case 'Y': return OBS_KEY_Y;
-	case 'Z': return OBS_KEY_Z;
-	case VK_OEM_4: return OBS_KEY_BRACKETLEFT;
-	case VK_OEM_5: return OBS_KEY_BACKSLASH;
-	case VK_OEM_6: return OBS_KEY_BRACKETRIGHT;
-	case VK_OEM_3: return OBS_KEY_ASCIITILDE;
-
-	case VK_LBUTTON: return OBS_KEY_MOUSE1;
-	case VK_RBUTTON: return OBS_KEY_MOUSE2;
-	case VK_MBUTTON: return OBS_KEY_MOUSE3;
-	case VK_XBUTTON1: return OBS_KEY_MOUSE4;
-	case VK_XBUTTON2: return OBS_KEY_MOUSE5;
-
-	/* TODO: Implement keys for non-US keyboards */
-	default:;
-	}
-	return OBS_KEY_NONE;
-}
-
-int obs_key_to_virtual_key(obs_key_t key)
+static int get_virtual_key(obs_key_t key)
 {
 	switch (key) {
 	case OBS_KEY_TAB: return VK_TAB;
@@ -517,4 +324,88 @@ int obs_key_to_virtual_key(obs_key_t key)
 	default:;
 	}
 	return 0;
+}
+
+bool obs_hotkeys_platform_init(struct obs_core_hotkeys *hotkeys)
+{
+	hotkeys->platform_context = bzalloc(sizeof(obs_hotkeys_platform_t));
+
+	for (size_t i = 0; i < OBS_KEY_LAST_VALUE; i++)
+		hotkeys->platform_context->vk_codes[i] = get_virtual_key(i);
+
+	return true;
+}
+
+void obs_hotkeys_platform_free(struct obs_core_hotkeys *hotkeys)
+{
+	bfree(hotkeys->platform_context);
+	hotkeys->platform_context = NULL;
+}
+
+bool obs_hotkeys_platform_is_pressed(obs_hotkeys_platform_t *context,
+		obs_key_t key)
+{
+	short state = GetAsyncKeyState(obs_key_to_virtual_key(key));
+	bool down = (state & 0x8000) != 0;
+	bool was_down = (state & 0x1) != 0;
+	return down || was_down;
+}
+
+void obs_key_to_str(obs_key_t key, struct dstr *str)
+{
+	wchar_t name[128] = L"";
+	UINT scan_code;
+	int vk;
+
+	if (key == OBS_KEY_NONE) {
+		return;
+	}
+
+	if (key >= OBS_KEY_MOUSE1 && key <= OBS_KEY_MOUSE29) {
+		if (obs->hotkeys.translations[key]) {
+			dstr_copy(str, obs->hotkeys.translations[key]);
+		} else {
+			dstr_printf(str, "Mouse %d",
+					(int)(key - OBS_KEY_MOUSE1 + 1));
+		}
+		return;
+	}
+
+	vk = obs_key_to_virtual_key(key);
+	scan_code = MapVirtualKey(vk, 0) << 16;
+
+	switch (vk) {
+	case VK_HOME:
+	case VK_END:
+	case VK_LEFT:
+	case VK_UP:
+	case VK_RIGHT:
+	case VK_DOWN:
+	case VK_PRIOR:
+	case VK_NEXT:
+	case VK_INSERT:
+	case VK_DELETE:
+		scan_code |= 0x01000000;
+	}
+
+	if (scan_code != 0 && GetKeyNameTextW(scan_code, name, 128) != 0)
+		dstr_from_wcs(str, name);
+}
+
+obs_key_t obs_key_from_virtual_key(int code)
+{
+	obs_hotkeys_platform_t *platform = obs->hotkeys.platform_context;
+
+	for (size_t i = 0; i < OBS_KEY_LAST_VALUE; i++) {
+		if (platform->vk_codes[i] == code) {
+			return (obs_key_t)i;
+		}
+	}
+
+	return OBS_KEY_NONE;
+}
+
+int obs_key_to_virtual_key(obs_key_t key)
+{
+	return obs->hotkeys.platform_context->vk_codes[(int)key];
 }
