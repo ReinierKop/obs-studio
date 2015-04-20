@@ -190,7 +190,16 @@ void OBSHotkeyEdit::RenderKey()
 	setMod(INTERACT_ALT_KEY,     Qt::ALT);
 	setMod(INTERACT_COMMAND_KEY, macFlip ? Qt::CTRL : Qt::META);
 
-	setText(QKeySequence(mods).toString(QKeySequence::NativeText) + str);
+	QString modStr = QKeySequence(mods).toString(QKeySequence::NativeText);
+
+	if (dstr_is_empty(str) && !modStr.isEmpty() &&
+	    *(modStr.cend()-1) == '+') {
+		modStr.chop(1);
+	}
+
+	modStr.replace("+", " + ");
+
+	setText(modStr + QT_UTF8(str));
 }
 
 void OBSHotkeyEdit::ResetKey()
