@@ -978,7 +978,8 @@ static inline void handle_binding(obs_hotkey_binding_t *binding,
 	if (!binding->key.modifiers && binding->key.key == OBS_KEY_NONE)
 		goto reset;
 
-	if (!binding->modifiers_match || !modifiers_match_)
+	if ((!binding->modifiers_match && binding->key.key != OBS_KEY_NONE) ||
+	    !modifiers_match_)
 		goto reset;
 
 	if ((pressed && !*pressed) ||
