@@ -68,7 +68,8 @@ void OBSHotkeyEdit::keyPressEvent(QKeyEvent *event)
 			obs_key_from_virtual_key(event->nativeVirtualKey());
 	}
 
-	key.modifiers = TranslateQtKeyboardEventModifiers(event->modifiers());
+	new_key.modifiers =
+		TranslateQtKeyboardEventModifiers(event->modifiers());
 
 	if (new_key == key)
 		return;
