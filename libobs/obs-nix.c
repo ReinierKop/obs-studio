@@ -22,6 +22,9 @@
 #include <sys/sysinfo.h>
 #include <sys/utsname.h>
 #include <xcb/xcb.h>
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/Xlib-xcb.h>
 #include <X11/keysym.h>
 #include <inttypes.h>
 #include "util/dstr.h"
@@ -343,7 +346,7 @@ static inline void fill_keysyms(struct obs_core_hotkeys *hotkeys)
 static inline xcb_keysym_t lower_keysym(xcb_keysym_t sym)
 {
 	if ((sym >> 8) == 0) {
-		return keysym + (XK_a - XK_A);
+		return sym + (XK_a - XK_A);
 	}
 
 	return sym;
@@ -351,17 +354,19 @@ static inline xcb_keysym_t lower_keysym(xcb_keysym_t sym)
 
 static inline bool fill_keycodes(struct obs_core_hotkeys *hotkeys)
 {
+	obs_hotkeys_platform_t *context = hotkeys->platform_context;
 	xcb_connection_t *connection = XGetXCBConnection(context->display);
 	const struct xcb_setup_t *setup = xcb_get_setup(connection);
 	xcb_get_keyboard_mapping_cookie_t cookie;
 	xcb_get_keyboard_mapping_reply_t *reply;
-	xcb_error_t *error = NULL;
-	xcb_keycode_t code;
+	xcb_generic_error_t *error = NULL;
+	int code;
+
+	int mincode = setup->min_keycode;
+	int maxcode = setup->max_keycode;
 
 	cookie = xcb_get_keyboard_mapping(connection,
-			setup->min_keycode,
-			setup->max_keycode,
-			setup->max_keycode - setup->min_keycode - 1);
+			mincode, maxcode - mincode - 1);
 
 	reply = xcb_get_keyboard_mapping_reply(connection, cookie, &error);
 
@@ -371,21 +376,21 @@ static inline bool fill_keycodes(struct obs_core_hotkeys *hotkeys)
 	}
 
 	const xcb_keysym_t *keysyms = xcb_get_keyboard_mapping_keysyms(reply);
-	uin8_t syms_per_code = reply->keysyms_per_keycode;
+	int syms_per_code = (int)reply->keysyms_per_keycode;
 
-	for (code = setup->min_keycode; code <= setup->max_keycode; code++) {
+	for (code = mincode; code <= maxcode; code++) {
 		const xcb_keysym_t *sym;
+		obs_key_t key;
+
 		sym = &keysyms[(code - setup->min_keycode) * syms_per_code];
 
 		if (syms_per_code == 1 || sym[1] == XCB_NO_SYMBOL) {
-			obs_key_t key;
 			key = obs_key_from_virtual_key(lower_keysym(sym[0]));
-
-			hotkeys->platform_context->keycodes[key] = code;
-			continue;
+		} else {
+			key = obs_key_from_virtual_key(sym[1]);
 		}
 
-		hotkeys->platform_context->keycodes[key] = code;
+		hotkeys->platform_context->keycodes[key] = (xcb_keycode_t)code;
 	}
 
 error1:
@@ -402,7 +407,7 @@ bool obs_hotkeys_platform_init(struct obs_core_hotkeys *hotkeys)
 		return false;
 
 	hotkeys->platform_context = bzalloc(sizeof(obs_hotkeys_platform_t));
-	hotkeys->display = display;
+	hotkeys->platform_context->display = display;
 
 	fill_keysyms(hotkeys);
 	fill_keycodes(hotkeys);
@@ -416,31 +421,60 @@ void obs_hotkeys_platform_free(struct obs_core_hotkeys *hotkeys)
 	hotkeys->platform_context = NULL;
 }
 
-static bool mouse_button_pressed(xcb_connection_t *connection, obs_key_t key)
+static xcb_screen_t *default_screen(obs_hotkeys_platform_t *context,
+		xcb_connection_t *connection)
+{
+	int def_screen_idx = XDefaultScreen(context->display);
+	xcb_screen_iterator_t iter;
+
+	iter = xcb_setup_roots_iterator(xcb_get_setup(connection));
+	while (iter.rem) {
+		if (--def_screen_idx == 0) {
+			return iter.data;
+			break;
+		}
+
+		xcb_screen_next(&iter);
+	}
+
+	return NULL;
+}
+
+static inline xcb_window_t root_window(obs_hotkeys_platform_t *context,
+		xcb_connection_t *connection)
+{
+	xcb_screen_t *screen = default_screen(context, connection);
+	if (screen)
+		return screen->root;
+	return 0;
+}
+
+static bool mouse_button_pressed(xcb_connection_t *connection,
+		obs_hotkeys_platform_t *context, obs_key_t key)
 {
 	xcb_generic_error_t *error = NULL;
 	xcb_query_pointer_cookie_t qpc;
 	xcb_query_pointer_reply_t *reply;
 	bool ret = false;
 
-	qpc = xcb_query_pointer(connection, XCBDefaultRootWindow(connection));
+	qpc = xcb_query_pointer(connection, root_window(context, connection));
 	reply = xcb_query_pointer_reply(connection, qpc, &error);
 
 	if (error) {
 		blog(LOG_WARNING, "xcb_query_pointer_reply failed");
 	} else {
-		buttons = reply->mask;
+		uint16_t buttons = reply->mask;
 
 		switch (key) {
 		case OBS_KEY_MOUSE1: ret = buttons & XCB_BUTTON_MASK_1; break;
 		case OBS_KEY_MOUSE2: ret = buttons & XCB_BUTTON_MASK_3; break;
 		case OBS_KEY_MOUSE3: ret = buttons & XCB_BUTTON_MASK_2; break;
+		default:;
 		}
 	}
 
 	free(reply);
 	free(error);
-
 	return ret;
 }
 
@@ -452,12 +486,12 @@ static bool key_pressed(xcb_connection_t *connection,
 	xcb_query_keymap_reply_t *reply;
 	bool pressed = false;
 
-	reply = xcb_query_keymap(connection, xcb_query_keymap(connection),
-			&error);
+	reply = xcb_query_keymap_reply(connection,
+			xcb_query_keymap(connection), &error);
 	if (error) {
 		blog(LOG_WARNING, "xcb_query_keymap failed");
 	} else {
-		pessed = (reply->keys[code / 8] & (1 << (code % 8))) != 0;
+		pressed = (reply->keys[code / 8] & (1 << (code % 8))) != 0;
 	}
 
 	free(reply);
@@ -471,7 +505,7 @@ bool obs_hotkeys_platform_is_pressed(obs_hotkeys_platform_t *context,
 	xcb_connection_t *connection = XGetXCBConnection(context->display);
 
 	if (key >= OBS_KEY_MOUSE1 && key <= OBS_KEY_MOUSE29)
-		return mouse_button_pressed(connection, key);
+		return mouse_button_pressed(connection, context, key);
 	else
 		return key_pressed(connection, context, key);
 }
@@ -480,24 +514,23 @@ void obs_key_to_str(obs_key_t key, struct dstr *dstr)
 {
 	XKeyEvent event = {0};
 	char name[128];
-	int ret;
 	int vk;
 
 	if (key >= OBS_KEY_MOUSE1 && key <= OBS_KEY_MOUSE29) {
 		if (obs->hotkeys.translations[key]) {
-			dstr_copy(str, obs->hotkeys.translations[key]);
+			dstr_copy(dstr, obs->hotkeys.translations[key]);
 		} else {
-			dstr_printf(str, "Mouse %d",
+			dstr_printf(dstr, "Mouse %d",
 					(int)(key - OBS_KEY_MOUSE1 + 1));
 		}
 		return;
 	}
 
 	vk = obs_key_to_virtual_key(key);
-	event.button = vk;
+	event.keycode = vk;
 
-	if (vk && Xutf8LookupString(&event, name, 128, NULL, NULL) != 0)
-		dstr_copy(str, name);
+	if (vk && XLookupString(&event, name, 128, NULL, NULL) != 0)
+		dstr_copy(dstr, name);
 }
 
 obs_key_t obs_key_from_virtual_key(int code)
@@ -508,7 +541,7 @@ obs_key_t obs_key_from_virtual_key(int code)
 		code += (XK_A - XK_a);
 
 	for (size_t i = 0; i < OBS_KEY_LAST_VALUE; i++) {
-		if (platform->vk_codes[i] == code) {
+		if (platform->keysyms[i] == (xcb_keysym_t)code) {
 			return (obs_key_t)i;
 		}
 	}
@@ -518,5 +551,5 @@ obs_key_t obs_key_from_virtual_key(int code)
 
 int obs_key_to_virtual_key(obs_key_t key)
 {
-	return obs->hotkeys.platform_context->vk_codes[(int)key];
+	return (int)obs->hotkeys.platform_context->keysyms[(int)key];
 }
