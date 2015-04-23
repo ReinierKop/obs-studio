@@ -198,11 +198,33 @@ void log_system_info(void)
 	log_distribution_info();
 }
 
+/* So here's how linux works with key mapping:
+ *
+ * First, there's a global key symbol enum (xcb_keysym_t) which has unique
+ * values for all possible symbols keys can have (e.g., '1' and '!' are
+ * different values).
+ *
+ * Then there's a key code (xcb_keycode_t), which is basically an index to the
+ * actual key itself on the keyboard (e.g., '1' and '!' will share the same
+ * value).
+ *
+ * xcb_keysym_t values should be given to libobs, and libobs will translate it
+ * to an obs_key_t, and although xcb_keysym_t can differ ('!' vs '1'), it will
+ * get the obs_key_t value that represents the actual key pressed; in other
+ * words it will be based on the key code rather than the key symbol.  The same
+ * applies to checking key press states.
+ */
 
 struct obs_hotkeys_platform {
 	Display *display;
-	xcb_keysym_t keysyms[OBS_KEY_LAST_VALUE];
+	xcb_keysym_t base_keysyms[OBS_KEY_LAST_VALUE];
 	xcb_keycode_t keycodes[OBS_KEY_LAST_VALUE];
+	xcb_keycode_t min_keycode;
+
+	/* stores a copy of the keysym map for keycodes */
+	xcb_keysym_t *keysyms;
+	int num_keysyms;
+	int syms_per_code;
 };
 
 #define MOUSE_1 (1<<16)
@@ -294,32 +316,32 @@ static int get_keysym(obs_key_t key)
 	case OBS_KEY_NUM8: return XK_KP_8;
 	case OBS_KEY_NUM9: return XK_KP_9;
 	case OBS_KEY_SEMICOLON: return XK_semicolon;
-	case OBS_KEY_A: return XK_a;
-	case OBS_KEY_B: return XK_b;
-	case OBS_KEY_C: return XK_c;
-	case OBS_KEY_D: return XK_d;
-	case OBS_KEY_E: return XK_e;
-	case OBS_KEY_F: return XK_f;
-	case OBS_KEY_G: return XK_g;
-	case OBS_KEY_H: return XK_h;
-	case OBS_KEY_I: return XK_i;
-	case OBS_KEY_J: return XK_j;
-	case OBS_KEY_K: return XK_k;
-	case OBS_KEY_L: return XK_l;
-	case OBS_KEY_M: return XK_m;
-	case OBS_KEY_N: return XK_n;
-	case OBS_KEY_O: return XK_o;
-	case OBS_KEY_P: return XK_p;
-	case OBS_KEY_Q: return XK_q;
-	case OBS_KEY_R: return XK_r;
-	case OBS_KEY_S: return XK_s;
-	case OBS_KEY_T: return XK_t;
-	case OBS_KEY_U: return XK_u;
-	case OBS_KEY_V: return XK_v;
-	case OBS_KEY_W: return XK_w;
-	case OBS_KEY_X: return XK_x;
-	case OBS_KEY_Y: return XK_y;
-	case OBS_KEY_Z: return XK_z;
+	case OBS_KEY_A: return XK_A;
+	case OBS_KEY_B: return XK_B;
+	case OBS_KEY_C: return XK_C;
+	case OBS_KEY_D: return XK_D;
+	case OBS_KEY_E: return XK_E;
+	case OBS_KEY_F: return XK_F;
+	case OBS_KEY_G: return XK_G;
+	case OBS_KEY_H: return XK_H;
+	case OBS_KEY_I: return XK_I;
+	case OBS_KEY_J: return XK_J;
+	case OBS_KEY_K: return XK_K;
+	case OBS_KEY_L: return XK_L;
+	case OBS_KEY_M: return XK_M;
+	case OBS_KEY_N: return XK_N;
+	case OBS_KEY_O: return XK_O;
+	case OBS_KEY_P: return XK_P;
+	case OBS_KEY_Q: return XK_Q;
+	case OBS_KEY_R: return XK_R;
+	case OBS_KEY_S: return XK_S;
+	case OBS_KEY_T: return XK_T;
+	case OBS_KEY_U: return XK_U;
+	case OBS_KEY_V: return XK_V;
+	case OBS_KEY_W: return XK_W;
+	case OBS_KEY_X: return XK_X;
+	case OBS_KEY_Y: return XK_Y;
+	case OBS_KEY_Z: return XK_Z;
 	case OBS_KEY_BRACKETLEFT: return XK_bracketleft;
 	case OBS_KEY_BACKSLASH: return XK_backslash;
 	case OBS_KEY_BRACKETRIGHT: return XK_bracketright;
@@ -337,10 +359,22 @@ static int get_keysym(obs_key_t key)
 	return 0;
 }
 
-static inline void fill_keysyms(struct obs_core_hotkeys *hotkeys)
+static inline void fill_base_keysyms(struct obs_core_hotkeys *hotkeys)
 {
 	for (size_t i = 0; i < OBS_KEY_LAST_VALUE; i++)
-		hotkeys->platform_context->keysyms[i] = get_keysym(i);
+		hotkeys->platform_context->base_keysyms[i] = get_keysym(i);
+}
+
+static obs_key_t key_from_base_keysym(obs_hotkeys_platform_t *context,
+		xcb_keysym_t code)
+{
+	for (size_t i = 0; i < OBS_KEY_LAST_VALUE; i++) {
+		if (context->base_keysyms[i] == (xcb_keysym_t)code) {
+			return (obs_key_t)i;
+		}
+	}
+
+	return OBS_KEY_NONE;
 }
 
 static inline bool fill_keycodes(struct obs_core_hotkeys *hotkeys)
@@ -356,6 +390,8 @@ static inline bool fill_keycodes(struct obs_core_hotkeys *hotkeys)
 	int mincode = setup->min_keycode;
 	int maxcode = setup->max_keycode;
 
+	context->min_keycode = setup->min_keycode;
+
 	cookie = xcb_get_keyboard_mapping(connection,
 			mincode, maxcode - mincode - 1);
 
@@ -369,15 +405,29 @@ static inline bool fill_keycodes(struct obs_core_hotkeys *hotkeys)
 	const xcb_keysym_t *keysyms = xcb_get_keyboard_mapping_keysyms(reply);
 	int syms_per_code = (int)reply->keysyms_per_keycode;
 
+	context->num_keysyms = (maxcode - mincode) * syms_per_code;
+	context->syms_per_code = syms_per_code;
+	context->keysyms = bmemdup(keysyms,
+			sizeof(xcb_keysym_t) * context->num_keysyms);
+
 	for (code = mincode; code <= maxcode; code++) {
 		const xcb_keysym_t *sym;
 		obs_key_t key;
 
 		sym = &keysyms[(code - mincode) * syms_per_code];
 
-		key = obs_key_from_virtual_key(sym[0]);
+		for (int i = 0; i < syms_per_code; i++) {
+			if (!sym[i])
+				break;
 
-		hotkeys->platform_context->keycodes[key] = (xcb_keycode_t)code;
+			key = key_from_base_keysym(context, sym[i]);
+
+			if (key != OBS_KEY_NONE) {
+				context->keycodes[key] = (xcb_keycode_t)code;
+				break;
+			}
+		}
+
 	}
 
 error1:
@@ -396,7 +446,7 @@ bool obs_hotkeys_platform_init(struct obs_core_hotkeys *hotkeys)
 	hotkeys->platform_context = bzalloc(sizeof(obs_hotkeys_platform_t));
 	hotkeys->platform_context->display = display;
 
-	fill_keysyms(hotkeys);
+	fill_base_keysyms(hotkeys);
 	fill_keycodes(hotkeys);
 	return true;
 }
@@ -404,6 +454,7 @@ bool obs_hotkeys_platform_init(struct obs_core_hotkeys *hotkeys)
 void obs_hotkeys_platform_free(struct obs_core_hotkeys *hotkeys)
 {
 	XCloseDisplay(hotkeys->platform_context->display);
+	bfree(hotkeys->platform_context->keysyms);
 	bfree(hotkeys->platform_context);
 	hotkeys->platform_context = NULL;
 }
@@ -528,11 +579,6 @@ void obs_key_to_str(obs_key_t key, struct dstr *dstr)
 	event.root = root_window(obs->hotkeys.platform_context, connection);
 	event.window = event.root;
 
-	if (key != OBS_KEY_NONE && keycode) {
-		int test = 0;
-		test = 1;
-	}
-
 	if (keycode) {
 		int len = XLookupString(&event, name, 128, NULL, NULL);
 		if (len) {
@@ -541,18 +587,34 @@ void obs_key_to_str(obs_key_t key, struct dstr *dstr)
 	}
 }
 
-obs_key_t obs_key_from_virtual_key(int code)
+static obs_key_t key_from_keycode(obs_hotkeys_platform_t *context,
+		xcb_keycode_t code)
 {
-	obs_hotkeys_platform_t *platform = obs->hotkeys.platform_context;
-
-	if (code != 0) {
-		int test = 0;
-		test = 1;
+	for (size_t i = 0; i < OBS_KEY_LAST_VALUE; i++) {
+		if (context->keycodes[i] == (xcb_keysym_t)code) {
+			return (obs_key_t)i;
+		}
 	}
 
-	for (size_t i = 0; i < OBS_KEY_LAST_VALUE; i++) {
-		if (platform->keysyms[i] == (xcb_keysym_t)code) {
-			return (obs_key_t)i;
+	return OBS_KEY_NONE;
+}
+
+obs_key_t obs_key_from_virtual_key(int sym)
+{
+	obs_hotkeys_platform_t *context = obs->hotkeys.platform_context;
+	const xcb_keysym_t *keysyms = context->keysyms;
+	int syms_per_code = context->syms_per_code;
+	int num_keysyms = context->num_keysyms;
+
+	if (sym == 0)
+		return OBS_KEY_NONE;
+
+	for (int i = 0; i < num_keysyms; i++) {
+		if (keysyms[i] == (xcb_keysym_t)sym) {
+			xcb_keycode_t code = (xcb_keycode_t)(i / syms_per_code);
+			code += context->min_keycode;
+			obs_key_t key = key_from_keycode(context, code);
+			return key;
 		}
 	}
 
@@ -561,5 +623,5 @@ obs_key_t obs_key_from_virtual_key(int code)
 
 int obs_key_to_virtual_key(obs_key_t key)
 {
-	return (int)obs->hotkeys.platform_context->keysyms[(int)key];
+	return (int)obs->hotkeys.platform_context->base_keysyms[(int)key];
 }
