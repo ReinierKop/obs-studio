@@ -211,7 +211,7 @@ struct obs_hotkeys_platform {
 #define MOUSE_4 (4<<16)
 #define MOUSE_5 (5<<16)
 
-static int get_virtual_key(obs_key_t key)
+static int get_keysym(obs_key_t key)
 {
 	switch (key) {
 	case OBS_KEY_TAB: return XK_Tab;
@@ -340,16 +340,7 @@ static int get_virtual_key(obs_key_t key)
 static inline void fill_keysyms(struct obs_core_hotkeys *hotkeys)
 {
 	for (size_t i = 0; i < OBS_KEY_LAST_VALUE; i++)
-		hotkeys->platform_context->keysyms[i] = get_virtual_key(i);
-}
-
-static inline xcb_keysym_t lower_keysym(xcb_keysym_t sym)
-{
-	if ((sym >> 8) == 0) {
-		return sym + (XK_a - XK_A);
-	}
-
-	return sym;
+		hotkeys->platform_context->keysyms[i] = get_keysym(i);
 }
 
 static inline bool fill_keycodes(struct obs_core_hotkeys *hotkeys)
@@ -382,13 +373,9 @@ static inline bool fill_keycodes(struct obs_core_hotkeys *hotkeys)
 		const xcb_keysym_t *sym;
 		obs_key_t key;
 
-		sym = &keysyms[(code - setup->min_keycode) * syms_per_code];
+		sym = &keysyms[(code - mincode) * syms_per_code];
 
-		if (syms_per_code == 1 || sym[1] == XCB_NO_SYMBOL) {
-			key = obs_key_from_virtual_key(lower_keysym(sym[0]));
-		} else {
-			key = obs_key_from_virtual_key(sym[1]);
-		}
+		key = obs_key_from_virtual_key(sym[0]);
 
 		hotkeys->platform_context->keycodes[key] = (xcb_keycode_t)code;
 	}
@@ -510,11 +497,19 @@ bool obs_hotkeys_platform_is_pressed(obs_hotkeys_platform_t *context,
 		return key_pressed(connection, context, key);
 }
 
+int get_keycode(obs_key_t key)
+{
+	return (int)obs->hotkeys.platform_context->keycodes[(int)key];
+}
+
 void obs_key_to_str(obs_key_t key, struct dstr *dstr)
 {
+	xcb_connection_t *connection;
 	XKeyEvent event = {0};
 	char name[128];
-	int vk;
+	int keycode;
+
+	connection = XGetXCBConnection(obs->hotkeys.platform_context->display);
 
 	if (key >= OBS_KEY_MOUSE1 && key <= OBS_KEY_MOUSE29) {
 		if (obs->hotkeys.translations[key]) {
@@ -526,19 +521,34 @@ void obs_key_to_str(obs_key_t key, struct dstr *dstr)
 		return;
 	}
 
-	vk = obs_key_to_virtual_key(key);
-	event.keycode = vk;
+	keycode = get_keycode(key);
+	event.type = KeyPress;
+	event.display = obs->hotkeys.platform_context->display;
+	event.keycode = keycode;
+	event.root = root_window(obs->hotkeys.platform_context, connection);
+	event.window = event.root;
 
-	if (vk && XLookupString(&event, name, 128, NULL, NULL) != 0)
-		dstr_copy(dstr, name);
+	if (key != OBS_KEY_NONE && keycode) {
+		int test = 0;
+		test = 1;
+	}
+
+	if (keycode) {
+		int len = XLookupString(&event, name, 128, NULL, NULL);
+		if (len) {
+			dstr_ncopy(dstr, name, len);
+		}
+	}
 }
 
 obs_key_t obs_key_from_virtual_key(int code)
 {
 	obs_hotkeys_platform_t *platform = obs->hotkeys.platform_context;
 
-	if (code >= XK_a && code <= XK_z)
-		code += (XK_A - XK_a);
+	if (code != 0) {
+		int test = 0;
+		test = 1;
+	}
 
 	for (size_t i = 0; i < OBS_KEY_LAST_VALUE; i++) {
 		if (platform->keysyms[i] == (xcb_keysym_t)code) {
