@@ -856,6 +856,32 @@ void OBSBasic::InitHotkeys()
 
 #undef MAKE_CALLBACK
 #endif
+
+	struct obs_hotkeys_translations t = {};
+	t.insert                       = Str("Hotkeys.Insert");
+	t.del                          = Str("Hotkeys.Delete");
+	t.home                         = Str("Hotkeys.Home");
+	t.end                          = Str("Hotkeys.End");
+	t.page_up                      = Str("Hotkeys.PageUp");
+	t.page_down                    = Str("Hotkeys.PageDown");
+	t.num_lock                     = Str("Hotkeys.NumLock");
+	t.scroll_lock                  = Str("Hotkeys.ScrollLock");
+	t.caps_lock                    = Str("Hotkeys.CapsLock");
+	t.backspace                    = Str("Hotkeys.Backspace");
+	t.tab                          = Str("Hotkeys.Tab");
+	t.print                        = Str("Hotkeys.Print");
+	t.pause                        = Str("Hotkeys.Pause");
+#ifdef _WIN32
+	t.hyper_left                   = Str("Hotkeys.WindowsKeyLeft");
+	t.hyper_right                  = Str("Hotkeys.WindowsKeyRight");
+#else
+	t.hyper_left                   = Str("Hotkeys.HyperLeft");
+	t.hyper_right                  = Str("Hotkeys.HyperRight");
+#endif
+	t.menu                         = Str("Hotkeys.Menu");
+	t.numpad                       = Str("Hotkeys.Numpad");
+	t.mouse                        = Str("Hotkeys.MouseButton");
+	obs_hotkeys_set_translations(&t);
 }
 
 OBSBasic::~OBSBasic()
