@@ -72,6 +72,43 @@ EXPORT obs_hotkey_id obs_hotkey_binding_get_hotkey_id(
 EXPORT obs_hotkey_t *obs_hotkey_binding_get_hotkey(
 		obs_hotkey_binding_t *binding);
 
+struct obs_hotkeys_translations {
+	const char *insert;
+	const char *del;
+	const char *home;
+	const char *end;
+	const char *page_up;
+	const char *page_down;
+	const char *num_lock;
+	const char *scroll_lock;
+	const char *caps_lock;
+	const char *backspace;
+	const char *tab;
+	const char *print;
+	const char *pause;
+	const char *shift;
+	const char *alt;
+	const char *control;
+	const char *hyper_left; /* windows key left */
+	const char *hyper_right; /* windows key right */
+	const char *menu;
+	const char *numpad; /* For example, "Numpad %1" */
+	const char *mouse; /* For example, "Mouse %1" */
+};
+
+/* This function is an optional way to provide translations for specific keys
+ * that may not have translations.  If the operating system can provide
+ * translations for these keys, it will use the operating system's translation
+ * over these translations.  If no translations are specified, it will use
+ * the default english translations for that specific operating system. */
+EXPORT void obs_hotkeys_set_translations_s(
+		struct obs_hotkeys_translations *translations, size_t size);
+
+#define obs_hotkeys_set_translations(translations) \
+	obs_hotkeys_set_translations_s(translations, \
+			sizeof(struct obs_hotkeys_translations))
+
+
 /* registering hotkeys (giving hotkeys a name and a function) */
 
 typedef void (*obs_hotkey_func)(obs_hotkey_id id, obs_hotkey_t *hotkey,
@@ -106,8 +143,6 @@ EXPORT obs_hotkey_pair_id obs_hotkey_pair_register_frontend(
 		void *data0, void *data1);
 
 EXPORT void obs_hotkey_unregister(obs_hotkey_id id);
-
-EXPORT void obs_set_key_translation(obs_key_t key, const char *translation);
 
 /* loading hotkeys (associating a hotkey with a physical key and modifiers) */
 

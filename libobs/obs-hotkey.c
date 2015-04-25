@@ -1097,11 +1097,145 @@ void *obs_hotkey_thread(void *arg)
 	return NULL;
 }
 
-void obs_set_key_translation(obs_key_t key, const char *translation)
+static void obs_set_key_translation(obs_key_t key, const char *translation)
 {
 	bfree(obs->hotkeys.translations[key]);
 	obs->hotkeys.translations[key] = NULL;
 
 	if (translation)
 		obs->hotkeys.translations[key] = bstrdup(translation);
+}
+
+void obs_hotkeys_set_translations_s(
+		struct obs_hotkeys_translations *translations, size_t size)
+{
+#define ADD_TRANSLATION(key_name, var_name) \
+	if (t.var_name) \
+		obs_set_key_translation(key_name, t.var_name);
+
+	struct obs_hotkeys_translations t = {0};
+	struct dstr numpad = {0};
+	struct dstr mouse = {0};
+	struct dstr button = {0};
+
+	if (!translations) {
+		return;
+	}
+
+	memcpy(&t, translations, (size < sizeof(t)) ? size : sizeof(t));
+
+	ADD_TRANSLATION(OBS_KEY_INSERT, insert);
+	ADD_TRANSLATION(OBS_KEY_DELETE, del);
+	ADD_TRANSLATION(OBS_KEY_HOME, home);
+	ADD_TRANSLATION(OBS_KEY_END, end);
+	ADD_TRANSLATION(OBS_KEY_PAGEUP, page_up);
+	ADD_TRANSLATION(OBS_KEY_PAGEDOWN, page_down);
+	ADD_TRANSLATION(OBS_KEY_NUMLOCK, num_lock);
+	ADD_TRANSLATION(OBS_KEY_SCROLLLOCK, scroll_lock);
+	ADD_TRANSLATION(OBS_KEY_CAPSLOCK, caps_lock);
+	ADD_TRANSLATION(OBS_KEY_BACKSPACE, backspace);
+	ADD_TRANSLATION(OBS_KEY_TAB, tab);
+	ADD_TRANSLATION(OBS_KEY_PRINT, print);
+	ADD_TRANSLATION(OBS_KEY_PAUSE, pause);
+	ADD_TRANSLATION(OBS_KEY_SHIFT, shift);
+	ADD_TRANSLATION(OBS_KEY_ALT, alt);
+	ADD_TRANSLATION(OBS_KEY_CONTROL, control);
+	ADD_TRANSLATION(OBS_KEY_HYPER_L, hyper_left);
+	ADD_TRANSLATION(OBS_KEY_HYPER_R, hyper_right);
+	ADD_TRANSLATION(OBS_KEY_MENU, menu);
+
+	if (t.numpad) {
+		dstr_copy(&numpad, t.numpad);
+		dstr_depad(&numpad);
+
+		if (dstr_find(&numpad, "%1") == NULL) {
+			dstr_cat(&numpad, " %1");
+		}
+
+#define ADD_NUMPAD_NUM(idx) \
+		dstr_copy_dstr(&button, &numpad); \
+		dstr_replace(&button, "%1", #idx); \
+		obs_set_key_translation(OBS_KEY_NUM ## idx, button.array)
+
+		ADD_NUMPAD_NUM(0);
+		ADD_NUMPAD_NUM(1);
+		ADD_NUMPAD_NUM(2);
+		ADD_NUMPAD_NUM(3);
+		ADD_NUMPAD_NUM(4);
+		ADD_NUMPAD_NUM(5);
+		ADD_NUMPAD_NUM(6);
+		ADD_NUMPAD_NUM(7);
+		ADD_NUMPAD_NUM(8);
+		ADD_NUMPAD_NUM(9);
+
+#define ADD_NUMPAD_STR(obs_key, str) \
+		dstr_copy_dstr(&button, &numpad); \
+		dstr_replace(&button, "%1", str); \
+		obs_set_key_translation(obs_key, button.array)
+
+		ADD_NUMPAD_STR(OBS_KEY_NUMASTERISK, "*");
+		ADD_NUMPAD_STR(OBS_KEY_NUMPLUS, "+");
+		ADD_NUMPAD_STR(OBS_KEY_NUMCOMMA, ",");
+		ADD_NUMPAD_STR(OBS_KEY_NUMMINUS, "-");
+		ADD_NUMPAD_STR(OBS_KEY_NUMPERIOD, ".");
+		ADD_NUMPAD_STR(OBS_KEY_NUMSLASH, "/");
+	}
+
+	if (t.mouse) {
+		dstr_copy(&mouse, t.mouse);
+		dstr_depad(&mouse);
+
+		if (dstr_find(&mouse, "%1") == NULL) {
+			dstr_cat(&mouse, " %1");
+		}
+
+#define ADD_MOUSE_NUM(idx) \
+		dstr_copy_dstr(&button, &mouse); \
+		dstr_replace(&button, "%1", #idx); \
+		obs_set_key_translation(OBS_KEY_MOUSE ## idx, button.array)
+
+		ADD_MOUSE_NUM(1);
+		ADD_MOUSE_NUM(2);
+		ADD_MOUSE_NUM(3);
+		ADD_MOUSE_NUM(4);
+		ADD_MOUSE_NUM(5);
+		ADD_MOUSE_NUM(6);
+		ADD_MOUSE_NUM(7);
+		ADD_MOUSE_NUM(8);
+		ADD_MOUSE_NUM(9);
+		ADD_MOUSE_NUM(10);
+		ADD_MOUSE_NUM(11);
+		ADD_MOUSE_NUM(12);
+		ADD_MOUSE_NUM(13);
+		ADD_MOUSE_NUM(14);
+		ADD_MOUSE_NUM(15);
+		ADD_MOUSE_NUM(16);
+		ADD_MOUSE_NUM(17);
+		ADD_MOUSE_NUM(18);
+		ADD_MOUSE_NUM(19);
+		ADD_MOUSE_NUM(20);
+		ADD_MOUSE_NUM(21);
+		ADD_MOUSE_NUM(22);
+		ADD_MOUSE_NUM(23);
+		ADD_MOUSE_NUM(24);
+		ADD_MOUSE_NUM(25);
+		ADD_MOUSE_NUM(26);
+		ADD_MOUSE_NUM(27);
+		ADD_MOUSE_NUM(28);
+		ADD_MOUSE_NUM(29);
+	}
+
+	dstr_free(&numpad);
+	dstr_free(&mouse);
+	dstr_free(&button);
+}
+
+const char *obs_get_hotkey_translation(obs_key_t key, const char *def)
+{
+	if (key == OBS_KEY_NONE) {
+		return NULL;
+	}
+
+	return obs->hotkeys.translations[key] ?
+		obs->hotkeys.translations[key] : def;
 }
