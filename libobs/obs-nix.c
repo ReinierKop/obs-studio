@@ -572,6 +572,46 @@ void obs_key_to_str(obs_key_t key, struct dstr *dstr)
 		return;
 	}
 
+	if (key >= OBS_KEY_NUM0 && key <= OBS_KEY_NUM9) {
+		if (obs->hotkeys.translations[key]) {
+			dstr_copy(dstr, obs->hotkeys.translations[key]);
+		} else {
+			dstr_printf(dstr, "Numpad %d",
+					(int)(key - OBS_KEY_NUM0));
+		}
+		return;
+	}
+
+#define translate_key(key, def) obs_get_hotkey_translation(key, def)
+
+	switch (key) {
+	case OBS_KEY_INSERT:       return translate_key(key, "Insert");
+	case OBS_KEY_DELETE:       return translate_key(key, "Delete");
+	case OBS_KEY_HOME:         return translate_key(key, "Home");
+	case OBS_KEY_END:          return translate_key(key, "End");
+	case OBS_KEY_PAGEUP:       return translate_key(key, "Page Up");
+	case OBS_KEY_PAGEDOWN:     return translate_key(key, "Page Down");
+	case OBS_KEY_NUMLOCK:      return translate_key(key, "Num Lock");
+	case OBS_KEY_SCROLLLOCK:   return translate_key(key, "Scroll Lock");
+	case OBS_KEY_CAPSLOCK:     return translate_key(key, "Caps Lock");
+	case OBS_KEY_BACKSPACE:    return translate_key(key, "Backspace");
+	case OBS_KEY_TAB:          return translate_key(key, "Tab");
+	case OBS_KEY_PRINT:        return translate_key(key, "Print");
+	case OBS_KEY_PAUSE:        return translate_key(key, "Pause");
+	case OBS_KEY_SHIFT:        return translate_key(key, "Shift");
+	case OBS_KEY_ALT:          return translate_key(key, "Alt");
+	case OBS_KEY_CONTORL:      return translate_key(key, "Control");
+	case OBS_KEY_HYPER_L:      return translate_key(key, "Hyper Left");
+	case OBS_KEY_HYPER_R:      return translate_key(key, "Hyper Right");
+	case OBS_KEY_MENU:         return translate_key(key, "Menu");
+	case OBS_KEY_NUMASTERISK:  return translate_key(key, "Numpad *");
+	case OBS_KEY_NUMPLUS:      return translate_key(key, "Numpad +");
+	case OBS_KEY_NUMCOMMA:     return translate_key(key, "Numpad ,");
+	case OBS_KEY_NUMPERIOD:    return translate_key(key, "Numpad .");
+	case OBS_KEY_NUMSLASH:     return translate_key(key, "Numpad /");
+	default:;
+	}
+
 	keycode = get_keycode(key);
 	event.type = KeyPress;
 	event.display = obs->hotkeys.platform_context->display;
