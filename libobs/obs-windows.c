@@ -208,6 +208,7 @@ static int get_virtual_key(obs_key_t key)
 	case OBS_KEY_INSERT: return VK_INSERT;
 	case OBS_KEY_DELETE: return VK_DELETE;
 	case OBS_KEY_PAUSE: return VK_PAUSE;
+	case OBS_KEY_PRINT: return VK_PRINT;
 	case OBS_KEY_HOME: return VK_HOME;
 	case OBS_KEY_END: return VK_END;
 	case OBS_KEY_LEFT: return VK_LEFT;
