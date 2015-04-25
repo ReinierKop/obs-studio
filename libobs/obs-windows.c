@@ -372,6 +372,11 @@ void obs_key_to_str(obs_key_t key, struct dstr *str)
 		return;
 	}
 
+	if (key == OBS_KEY_PAUSE) {
+		dstr_copy(str, obs_get_hotkey_translation(key, "Pause"));
+		return;
+	}
+
 	vk = obs_key_to_virtual_key(key);
 	scan_code = MapVirtualKey(vk, 0) << 16;
 
