@@ -583,6 +583,7 @@ void obs_key_to_str(obs_key_t key, struct dstr *dstr)
 		int len = XLookupString(&event, name, 128, NULL, NULL);
 		if (len) {
 			dstr_ncopy(dstr, name, len);
+			dstr_to_upper(dstr);
 		}
 	}
 }
