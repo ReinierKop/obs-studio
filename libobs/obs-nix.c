@@ -303,7 +303,7 @@ static int get_keysym(obs_key_t key)
 	case OBS_KEY_NUMASTERISK: return XK_KP_Multiply;
 	case OBS_KEY_NUMPLUS: return XK_KP_Add;
 	case OBS_KEY_NUMMINUS: return XK_KP_Subtract;
-	case OBS_KEY_NUMPERIOD: return XK_KP_Delete;
+	case OBS_KEY_NUMPERIOD: return XK_KP_Decimal;
 	case OBS_KEY_NUMSLASH: return XK_KP_Divide;
 	case OBS_KEY_NUM0: return XK_KP_0;
 	case OBS_KEY_NUM1: return XK_KP_1;
