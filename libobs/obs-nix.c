@@ -582,7 +582,8 @@ void obs_key_to_str(obs_key_t key, struct dstr *dstr)
 		return;
 	}
 
-#define translate_key(key, def) obs_get_hotkey_translation(key, def)
+#define translate_key(key, def) \
+	dstr_copy(dstr, obs_get_hotkey_translation(key, def))
 
 	switch (key) {
 	case OBS_KEY_INSERT:       return translate_key(key, "Insert");
@@ -600,7 +601,7 @@ void obs_key_to_str(obs_key_t key, struct dstr *dstr)
 	case OBS_KEY_PAUSE:        return translate_key(key, "Pause");
 	case OBS_KEY_SHIFT:        return translate_key(key, "Shift");
 	case OBS_KEY_ALT:          return translate_key(key, "Alt");
-	case OBS_KEY_CONTORL:      return translate_key(key, "Control");
+	case OBS_KEY_CONTROL:      return translate_key(key, "Control");
 	case OBS_KEY_HYPER_L:      return translate_key(key, "Hyper Left");
 	case OBS_KEY_HYPER_R:      return translate_key(key, "Hyper Right");
 	case OBS_KEY_MENU:         return translate_key(key, "Menu");
