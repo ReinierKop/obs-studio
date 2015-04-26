@@ -688,7 +688,7 @@ void dstr_to_upper(struct dstr *str)
 	wchar_t *wstr;
 	wchar_t *temp;
 
-	if (!dstr_is_empty(str))
+	if (dstr_is_empty(str))
 		return;
 
 	wstr = dstr_to_wcs(str);
@@ -711,7 +711,7 @@ void dstr_to_lower(struct dstr *str)
 	wchar_t *wstr;
 	wchar_t *temp;
 
-	if (!dstr_is_empty(str))
+	if (dstr_is_empty(str))
 		return;
 
 	wstr = dstr_to_wcs(str);
