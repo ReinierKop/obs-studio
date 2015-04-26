@@ -391,6 +391,7 @@ void obs_key_to_str(obs_key_t key, struct dstr *str)
 	case VK_NEXT:
 	case VK_INSERT:
 	case VK_DELETE:
+	case VK_NUMLOCK:
 		scan_code |= 0x01000000;
 	}
 
