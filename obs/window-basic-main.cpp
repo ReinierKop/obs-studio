@@ -876,11 +876,11 @@ void OBSBasic::InitHotkeys()
 	t.up                           = Str("Hotkeys.Up");
 	t.down                         = Str("Hotkeys.Down");
 #ifdef _WIN32
-	t.hyper_left                   = Str("Hotkeys.WindowsKeyLeft");
-	t.hyper_right                  = Str("Hotkeys.WindowsKeyRight");
+	t.super_left                   = Str("Hotkeys.WindowsKeyLeft");
+	t.super_right                  = Str("Hotkeys.WindowsKeyRight");
 #else
-	t.hyper_left                   = Str("Hotkeys.HyperLeft");
-	t.hyper_right                  = Str("Hotkeys.HyperRight");
+	t.super_left                   = Str("Hotkeys.SuperLeft");
+	t.super_right                  = Str("Hotkeys.SuperRight");
 #endif
 	t.menu                         = Str("Hotkeys.Menu");
 	t.numpad                       = Str("Hotkeys.Numpad");
