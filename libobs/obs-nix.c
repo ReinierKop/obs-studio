@@ -599,6 +599,10 @@ void obs_key_to_str(obs_key_t key, struct dstr *dstr)
 	case OBS_KEY_TAB:          return translate_key(key, "Tab");
 	case OBS_KEY_PRINT:        return translate_key(key, "Print");
 	case OBS_KEY_PAUSE:        return translate_key(key, "Pause");
+	case OBS_KEY_LEFT:         return translate_key(key, "Left");
+	case OBS_KEY_RIGHT:        return translate_key(key, "Right");
+	case OBS_KEY_UP:           return translate_key(key, "Up");
+	case OBS_KEY_DOWN:         return translate_key(key, "Down");
 	case OBS_KEY_SHIFT:        return translate_key(key, "Shift");
 	case OBS_KEY_ALT:          return translate_key(key, "Alt");
 	case OBS_KEY_CONTROL:      return translate_key(key, "Control");

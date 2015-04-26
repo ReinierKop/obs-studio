@@ -86,6 +86,10 @@ struct obs_hotkeys_translations {
 	const char *tab;
 	const char *print;
 	const char *pause;
+	const char *left;
+	const char *right;
+	const char *up;
+	const char *down;
 	const char *shift;
 	const char *alt;
 	const char *control;
