@@ -606,8 +606,8 @@ void obs_key_to_str(obs_key_t key, struct dstr *dstr)
 	case OBS_KEY_SHIFT:        return translate_key(key, "Shift");
 	case OBS_KEY_ALT:          return translate_key(key, "Alt");
 	case OBS_KEY_CONTROL:      return translate_key(key, "Control");
-	case OBS_KEY_HYPER_L:      return translate_key(key, "Hyper Left");
-	case OBS_KEY_HYPER_R:      return translate_key(key, "Hyper Right");
+	case OBS_KEY_SUPER_L:      return translate_key(key, "Super Left");
+	case OBS_KEY_SUPER_R:      return translate_key(key, "Super Right");
 	case OBS_KEY_MENU:         return translate_key(key, "Menu");
 	case OBS_KEY_NUMASTERISK:  return translate_key(key, "Numpad *");
 	case OBS_KEY_NUMPLUS:      return translate_key(key, "Numpad +");
