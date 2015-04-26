@@ -93,8 +93,8 @@ struct obs_hotkeys_translations {
 	const char *shift;
 	const char *alt;
 	const char *control;
-	const char *hyper_left; /* windows key left */
-	const char *hyper_right; /* windows key right */
+	const char *super_left; /* windows key left */
+	const char *super_right; /* windows key right */
 	const char *menu;
 	const char *numpad; /* For example, "Numpad %1" */
 	const char *mouse; /* For example, "Mouse %1" */

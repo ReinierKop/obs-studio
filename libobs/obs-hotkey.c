@@ -1140,8 +1140,8 @@ void obs_hotkeys_set_translations_s(
 	ADD_TRANSLATION(OBS_KEY_SHIFT, shift);
 	ADD_TRANSLATION(OBS_KEY_ALT, alt);
 	ADD_TRANSLATION(OBS_KEY_CONTROL, control);
-	ADD_TRANSLATION(OBS_KEY_HYPER_L, hyper_left);
-	ADD_TRANSLATION(OBS_KEY_HYPER_R, hyper_right);
+	ADD_TRANSLATION(OBS_KEY_SUPER_L, super_left);
+	ADD_TRANSLATION(OBS_KEY_SUPER_R, super_right);
 	ADD_TRANSLATION(OBS_KEY_MENU, menu);
 
 	if (t.numpad) {
