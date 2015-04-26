@@ -617,6 +617,12 @@ void obs_key_to_str(obs_key_t key, struct dstr *dstr)
 	default:;
 	}
 
+	if (key >= OBS_KEY_F1 && key <= OBS_KEY_F35) {
+		dstr_printf(dstr, "F%d",
+				(int)(key - OBS_KEY_F1 + 1));
+		return;
+	}
+
 	keycode = get_keycode(key);
 	event.type = KeyPress;
 	event.display = obs->hotkeys.platform_context->display;
