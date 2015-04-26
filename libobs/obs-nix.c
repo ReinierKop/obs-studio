@@ -422,7 +422,7 @@ static inline bool fill_keycodes(struct obs_core_hotkeys *hotkeys)
 
 			key = key_from_base_keysym(context, sym[i]);
 
-			if (key != OBS_KEY_NONE) {
+			if (key != OBS_KEY_NONE && !context->keycodes[key]) {
 				context->keycodes[key] = (xcb_keycode_t)code;
 				break;
 			}
