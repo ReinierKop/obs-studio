@@ -883,8 +883,19 @@ void OBSBasic::InitHotkeys()
 	t.super_right                  = Str("Hotkeys.SuperRight");
 #endif
 	t.menu                         = Str("Hotkeys.Menu");
-	t.numpad                       = Str("Hotkeys.Numpad");
-	t.mouse                        = Str("Hotkeys.MouseButton");
+	t.numpad_num                   = Str("Hotkeys.NumpadNum");
+	t.numpad_multiply              = Str("Hotkeys.NumpadMultiply");
+	t.numpad_divide                = Str("Hotkeys.NumpadDivide");
+	t.numpad_plus                  = Str("Hotkeys.NumpadAdd");
+	t.numpad_minus                 = Str("Hotkeys.NumpadSubtract");
+	t.numpad_decimal               = Str("Hotkeys.NumpadDecimal");
+	t.apple_keypad_num             = Str("Hotkeys.AppleKeypadNum");
+	t.apple_keypad_multiply        = Str("Hotkeys.AppleKeypadMultiply");
+	t.apple_keypad_divide          = Str("Hotkeys.AppleKeypadDivide");
+	t.apple_keypad_plus            = Str("Hotkeys.AppleKeypadAdd");
+	t.apple_keypad_minus           = Str("Hotkeys.AppleKeypadSubtract");
+	t.apple_keypad_decimal         = Str("Hotkeys.AppleKeypadDecimal");
+	t.mouse_num                    = Str("Hotkeys.MouseButton");
 	obs_hotkeys_set_translations(&t);
 }
 
