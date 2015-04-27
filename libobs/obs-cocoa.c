@@ -335,7 +335,9 @@ int obs_key_to_virtual_key(obs_key_t code)
 static bool mouse_button_to_str(obs_key_t key, struct dstr *str)
 {
 #define MAP_BUTTON(i) case OBS_KEY_MOUSE ## i: \
-		dstr_copy(str, "Mouse " #i); return true
+		dstr_copy(str, obs_get_hotkey_translation(key, "Mouse " #i)); \
+		return true
+
 	switch (key) {
 	MAP_BUTTON(1);
 	MAP_BUTTON(2);
@@ -432,6 +434,11 @@ void obs_key_to_str(obs_key_t key, struct dstr *str)
 {
 	if (mouse_button_to_str(key, str))
 		return;
+
+	if (key == OBS_KEY_SPACE && obs->hotkeys.translations[key]) {
+		dstr_copy(str, obs->hotkeys.translations[key]);
+		return;
+	}
 
 	int code = obs_key_to_virtual_key(key);
 	if (code_to_str(code, str))
