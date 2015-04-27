@@ -1143,9 +1143,24 @@ void obs_hotkeys_set_translations_s(
 	ADD_TRANSLATION(OBS_KEY_SUPER_L, super_left);
 	ADD_TRANSLATION(OBS_KEY_SUPER_R, super_right);
 	ADD_TRANSLATION(OBS_KEY_MENU, menu);
+#ifdef __APPLE__
+	const char *numpad_str = t.apple_keypad_num;
+	ADD_TRANSLATION(OBS_KEY_NUMSLASH, apple_keypad_divide);
+	ADD_TRANSLATION(OBS_KEY_NUMASTERISK, apple_keypad_multiply);
+	ADD_TRANSLATION(OBS_KEY_NUMMINUS, apple_keypad_minus);
+	ADD_TRANSLATION(OBS_KEY_NUMPLUS, apple_keypad_plus);
+	ADD_TRANSLATION(OBS_KEY_NUMPERIOD, apple_keypad_decimal);
+#else
+	const char *numpad_str = t.numpad_num;
+	ADD_TRANSLATION(OBS_KEY_NUMSLASH, numpad_divide);
+	ADD_TRANSLATION(OBS_KEY_NUMASTERISK, numpad_multiply);
+	ADD_TRANSLATION(OBS_KEY_NUMMINUS, numpad_minus);
+	ADD_TRANSLATION(OBS_KEY_NUMPLUS, numpad_plus);
+	ADD_TRANSLATION(OBS_KEY_NUMPERIOD, numpad_decimal);
+#endif
 
-	if (t.numpad) {
-		dstr_copy(&numpad, t.numpad);
+	if (numpad_str) {
+		dstr_copy(&numpad, numpad_str);
 		dstr_depad(&numpad);
 
 		if (dstr_find(&numpad, "%1") == NULL) {
@@ -1167,22 +1182,10 @@ void obs_hotkeys_set_translations_s(
 		ADD_NUMPAD_NUM(7);
 		ADD_NUMPAD_NUM(8);
 		ADD_NUMPAD_NUM(9);
-
-#define ADD_NUMPAD_STR(obs_key, str) \
-		dstr_copy_dstr(&button, &numpad); \
-		dstr_replace(&button, "%1", str); \
-		obs_set_key_translation(obs_key, button.array)
-
-		ADD_NUMPAD_STR(OBS_KEY_NUMASTERISK, "*");
-		ADD_NUMPAD_STR(OBS_KEY_NUMPLUS, "+");
-		ADD_NUMPAD_STR(OBS_KEY_NUMCOMMA, ",");
-		ADD_NUMPAD_STR(OBS_KEY_NUMMINUS, "-");
-		ADD_NUMPAD_STR(OBS_KEY_NUMPERIOD, ".");
-		ADD_NUMPAD_STR(OBS_KEY_NUMSLASH, "/");
 	}
 
-	if (t.mouse) {
-		dstr_copy(&mouse, t.mouse);
+	if (t.mouse_num) {
+		dstr_copy(&mouse, t.mouse_num);
 		dstr_depad(&mouse);
 
 		if (dstr_find(&mouse, "%1") == NULL) {

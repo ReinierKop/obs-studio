@@ -96,8 +96,19 @@ struct obs_hotkeys_translations {
 	const char *super_left; /* windows key left */
 	const char *super_right; /* windows key right */
 	const char *menu;
-	const char *numpad; /* For example, "Numpad %1" */
-	const char *mouse; /* For example, "Mouse %1" */
+	const char *numpad_num; /* For example, "Numpad %1" */
+	const char *numpad_divide;
+	const char *numpad_multiply;
+	const char *numpad_minus;
+	const char *numpad_plus;
+	const char *numpad_decimal;
+	const char *apple_keypad_num; /* For example, "%1 (Keypad)" */
+	const char *apple_keypad_divide;
+	const char *apple_keypad_multiply;
+	const char *apple_keypad_minus;
+	const char *apple_keypad_plus;
+	const char *apple_keypad_decimal;
+	const char *mouse_num; /* For example, "Mouse %1" */
 };
 
 /* This function is an optional way to provide translations for specific keys
