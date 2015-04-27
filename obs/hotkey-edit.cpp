@@ -172,34 +172,8 @@ void OBSHotkeyEdit::mousePressEvent(QMouseEvent *event)
 void OBSHotkeyEdit::RenderKey()
 {
 	DStr str;
-	obs_key_to_str(key.key, str);
-
-	int mods = 0;
-	auto setMod = [&](uint32_t flag, int code)
-	{
-		if ((key.modifiers & flag) == flag)
-			mods += code;
-	};
-#ifdef __APPLE__
-	bool macFlip = true;
-#else
-	bool macFlip = false;
-#endif
-	setMod(INTERACT_SHIFT_KEY,   Qt::SHIFT);
-	setMod(INTERACT_CONTROL_KEY, macFlip ? Qt::META : Qt::CTRL);
-	setMod(INTERACT_ALT_KEY,     Qt::ALT);
-	setMod(INTERACT_COMMAND_KEY, macFlip ? Qt::CTRL : Qt::META);
-
-	QString modStr = QKeySequence(mods).toString(QKeySequence::NativeText);
-
-	if (dstr_is_empty(str) && !modStr.isEmpty() &&
-	    *(modStr.cend()-1) == '+') {
-		modStr.chop(1);
-	}
-
-	modStr.replace("+", " + ");
-
-	setText(modStr + QT_UTF8(str));
+	obs_key_combination_to_str(key, str);
+	setText(QT_UTF8(str));
 }
 
 void OBSHotkeyEdit::ResetKey()
