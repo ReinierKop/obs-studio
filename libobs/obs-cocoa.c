@@ -323,6 +323,7 @@ int obs_key_to_virtual_key(obs_key_t code)
 	//case OBS_KEY_META:             return 0x36;
 
 	//TODO add remaining keys
+	default:
 	case OBS_KEY_NONE:
 	case OBS_KEY_UNKNOWN:
 	case OBS_KEY_LAST_VALUE:
@@ -1091,7 +1092,7 @@ bool obs_hotkeys_platform_is_pressed(obs_hotkeys_platform_t *plat,
 	return false;
 }
 
-static inline add_combo_key(obs_key_t key, struct dstr *str)
+static inline void add_combo_key(obs_key_t key, struct dstr *str)
 {
 	struct dstr key_str = {0};
 	obs_key_to_str(key, &key_str);
@@ -1103,7 +1104,7 @@ void obs_key_combination_to_str(obs_key_combination_t combination,
 		struct dstr *str)
 {
 	if ((combination.modifiers & INTERACT_CONTROL_KEY) != 0) {
-		add_combo_key(OBS_KEY_CONTROL, str);
+		add_combo_key(OBS_KEY_META, str);
 	}
 	if ((combination.modifiers & INTERACT_ALT_KEY) != 0) {
 		add_combo_key(OBS_KEY_ALT, str);
@@ -1112,7 +1113,7 @@ void obs_key_combination_to_str(obs_key_combination_t combination,
 		add_combo_key(OBS_KEY_SHIFT, str);
 	}
 	if ((combination.modifiers & INTERACT_COMMAND_KEY) != 0) {
-		add_combo_key(OBS_KEY_COMMAND, str);
+		add_combo_key(OBS_KEY_CONTROL, str);
 	}
 	if (combination.key != OBS_KEY_NONE) {
 		add_combo_key(combination.key, str);
