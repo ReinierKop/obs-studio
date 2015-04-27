@@ -678,7 +678,7 @@ int obs_key_to_virtual_key(obs_key_t key)
 	return (int)obs->hotkeys.platform_context->base_keysyms[(int)key];
 }
 
-static inline add_combo_key(obs_key_t key, struct dstr *str)
+static inline void add_combo_key(obs_key_t key, struct dstr *str)
 {
 	struct dstr key_str = {0};
 
