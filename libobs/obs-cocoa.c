@@ -435,6 +435,13 @@ void obs_key_to_str(obs_key_t key, struct dstr *str)
 	if (mouse_button_to_str(key, str))
 		return;
 
+	if (key >= OBS_KEY_NUMASTERISK && key <= OBS_KEY_NUM9) {
+		if (obs->hotkeys.translations[key]) {
+			dstr_copy(str, obs->hotkeys.translations[key]);
+			return;
+		}
+	}
+
 	if (key == OBS_KEY_SPACE && obs->hotkeys.translations[key]) {
 		dstr_copy(str, obs->hotkeys.translations[key]);
 		return;
