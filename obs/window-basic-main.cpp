@@ -52,6 +52,11 @@
 #include <fstream>
 #include <sstream>
 
+// added by reinier for hack
+#include <iostream>
+#include <string>
+// end added by reinier
+
 #include <QScreen>
 #include <QWindow>
 
@@ -622,7 +627,7 @@ void OBSBasic::OBSInit()
 		throw "Failed to get scenes.json file path";
 
 	/* make sure it's fully displayed before doing any initialization */
-	show();
+	//show();
 	App()->processEvents();
 
 	if (!obs_startup(App()->GetLocale()))
@@ -675,6 +680,10 @@ void OBSBasic::OBSInit()
 	if (!previewEnabled)
 		QMetaObject::invokeMethod(this, "TogglePreview",
 				Qt::QueuedConnection);
+
+	cout << "***automatically starting stream***\n";
+	on_streamButton_clicked();
+
 }
 
 OBSBasic::~OBSBasic()
