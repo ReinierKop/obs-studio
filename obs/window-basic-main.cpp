@@ -55,6 +55,8 @@
 // added by reinier for hack
 #include <iostream>
 #include <string>
+#include <QCoreApplication>
+#include <QStringList>
 // end added by reinier
 
 #include <QScreen>
@@ -618,7 +620,7 @@ void OBSBasic::ResetOutputs()
 	}
 }
 
-void OBSBasic::OBSInit()
+void OBSBasic::OBSInit(bool headless)
 {
 	char savePath[512];
 	int ret = os_get_config_path(savePath, sizeof(savePath),
@@ -627,7 +629,9 @@ void OBSBasic::OBSInit()
 		throw "Failed to get scenes.json file path";
 
 	/* make sure it's fully displayed before doing any initialization */
-	//show();
+	if (!headless) {
+		show();
+	}
 	App()->processEvents();
 
 	if (!obs_startup(App()->GetLocale()))
@@ -681,9 +685,12 @@ void OBSBasic::OBSInit()
 		QMetaObject::invokeMethod(this, "TogglePreview",
 				Qt::QueuedConnection);
 
-	cout << "***automatically starting stream***\n";
-	on_streamButton_clicked();
-
+	/* if we want to do everything headless, we start the streaming process */
+	if (headless) {
+		cout << "***automatically starting stream and recording***\n";
+		on_streamButton_clicked();
+		on_recordButton_clicked();
+	}
 }
 
 OBSBasic::~OBSBasic()

@@ -308,7 +308,7 @@ const char *OBSApp::GetRenderModule() const
 		DL_D3D11 : DL_OPENGL;
 }
 
-bool OBSApp::OBSInit()
+bool OBSApp::OBSInit(bool headless)
 {
 	bool licenseAccepted = config_get_bool(globalConfig, "General",
 			"LicenseAccepted");
@@ -326,7 +326,7 @@ bool OBSApp::OBSInit()
 		mainWindow->setAttribute(Qt::WA_DeleteOnClose, true);
 		connect(mainWindow, SIGNAL(destroyed()), this, SLOT(quit()));
 
-		mainWindow->OBSInit();
+		mainWindow->OBSInit(headless);
 
 		return true;
 	} else {
@@ -609,7 +609,12 @@ static int run_program(fstream &logFile, int argc, char *argv[])
 		program.installTranslator(&translator);
 		program.setStyle(new NoFocusFrameStyle);
 
-		ret = program.OBSInit() ? program.exec() : 0;
+		if (argc > 1) {
+			bool headless = QString(argv[1]) == "-headless" ? true : false;
+			ret = program.OBSInit(headless) ? program.exec() : 0;
+		} else {
+			ret = program.OBSInit(false) ? program.exec() : 0;
+		}
 
 	} catch (const char *error) {
 		blog(LOG_ERROR, "%s", error);
