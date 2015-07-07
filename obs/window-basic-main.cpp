@@ -687,9 +687,8 @@ void OBSBasic::OBSInit(bool headless)
 
 	/* if we want to do everything headless, we start the streaming process */
 	if (headless) {
-		cout << "***automatically starting stream and recording***\n";
+		cout << "***automatically starting stream***\n";
 		on_streamButton_clicked();
-		on_recordButton_clicked();
 	}
 }
 
